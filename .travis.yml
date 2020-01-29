@@ -28,9 +28,10 @@ script:
   # Run linter
   - golangci-lint run ./...
 
-  # Run linter
-  - golint -set_exit_status $(go list ./...)
-
   # Run all the tests with the race detector enabled
   - overalls -project=github.com/globusdigital/feature-toggles -covermode=atomic -debug -- -race -v -coverpkg=./...
   - $HOME/gopath/bin/goveralls -coverprofile=overalls.coverprofile -service=travis-ci -repotoken=$COVERALLS_TOKEN
+
+after_success:
+  # Run linter
+  - golint -set_exit_status $(go list ./...)
