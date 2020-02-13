@@ -2,6 +2,8 @@ use serde::{Serialize, Deserialize};
 use mongodb::{Client, options::{ClientOptions, IndexModel, UpdateOptions}};
 use std::collections::HashMap;
 use std::error::Error;
+use std::sync::{Arc, RwLock};
+use std::marker::Sync;
 
 const FLAGS_COLLECTION: &'static str = "flags";
 
@@ -38,21 +40,23 @@ pub struct Flag {
     value: bool,
 }
 
-pub trait Store {
+pub trait Store: Clone + Sync {
     fn get_flags(&self, service_name: Option<String>) -> Result<Vec<Flag>, Box<dyn Error>>;
     fn store(&mut self, flags: Vec<Flag>, initial: bool) -> Result<(), Box<dyn Error>>;
 }
 
+#[derive(Clone)]
 pub struct MemStore {
-    data: HashMap<FlagKey, Flag>,
+    data: Arc<RwLock<HashMap<FlagKey, Flag>>>,
 }
 
 impl Store for MemStore {
     fn get_flags(&self, service_name: Option<String>) -> Result<Vec<Flag>, Box<dyn Error>> {
-        let mut values = Vec::with_capacity(self.data.len());
+        let data = self.data.read().unwrap();
+        let mut values = Vec::with_capacity(data.len());
         let no_service_name = service_name.is_none();
         let service_name = service_name.unwrap_or(String::from(""));
-        for val in self.data.values() {
+        for val in data.values() {
             if no_service_name || val.service_name == service_name || val.service_name == ""  {
                 values.push(val.clone());
             }
@@ -61,11 +65,12 @@ impl Store for MemStore {
     }
 
     fn store(&mut self, flags: Vec<Flag>, initial: bool) -> Result<(), Box<dyn Error>> {
+        let mut data = self.data.write().unwrap();
         for f in flags {
             let val = f.clone();
             let key = FlagKey{name: f.name, service_name: f.service_name};
-            if !initial || !self.data.contains_key(&key) {
-                self.data.insert(key, val);
+            if !initial || !data.contains_key(&key) {
+                data.insert(key, val);
             }
         }
         Ok(())
@@ -73,11 +78,12 @@ impl Store for MemStore {
 }
 
 impl MemStore {
-    pub fn new() -> Box<dyn Store> {
-        Box::new(MemStore{data: HashMap::new()})
+    pub fn new() -> impl Store {
+        MemStore{data: Arc::new(RwLock::new(HashMap::new()))}
     }
 }
 
+#[derive(Clone)]
 pub struct MongoStore {
     db: String,
     client: Client,
@@ -115,13 +121,13 @@ impl Store for MongoStore {
 }
 
 impl MongoStore {
-    pub fn new(url: &str) -> Result<Box<dyn Store>, Box<dyn Error>> {
+    pub fn new(url: &str) -> Result<impl Store, Box<dyn Error>> {
         let dbopts = ClientOptions::parse(&url)?;
         let db = dbopts.clone().credential.map(|c| c.source).flatten().unwrap_or(String::from("featureToggles"));
         let client = Client::with_options(dbopts)?;
 
         client.database(&db).collection(FLAGS_COLLECTION).create_indexes(vec![IndexModel{keys: doc! {"name": 1, "service_name": 1}, options: Some(doc! {"unique": true})}])?;
 
-        Ok(Box::new(MongoStore{db, client}))
+        Ok(MongoStore{db, client})
     }
 }

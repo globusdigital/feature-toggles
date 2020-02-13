@@ -22,20 +22,20 @@ impl std::str::FromStr for Type {
     }
 }
 
-pub trait Messaging {
+pub trait Bus {
     fn send(&self, flags: Vec<storage::Flag>) -> Result<(), Box<dyn Error>>;
 }
 
 pub struct Noop {}
 
-impl Messaging for Noop {
+impl Bus for Noop {
     fn send(&self, _: Vec<storage::Flag>) -> Result<(), Box<dyn Error>> {
         Ok(())
     }
 }
 
 impl Noop {
-    pub fn new() -> Box<dyn Messaging> {
+    pub fn new() -> Box<dyn Bus> {
         Box::new(Noop{})
     }
 }
@@ -44,7 +44,7 @@ pub struct Nats {
     client: Client,
 }
 
-impl Messaging for Nats {
+impl Bus for Nats {
     fn send(&self, flags: Vec<storage::Flag>) -> Result<(), Box<dyn Error>> {
         let payload = serde_json::to_string(&flags)?;
         let subject = NATS_SUBJECT.parse::<rants::Subject>().unwrap();
@@ -54,7 +54,7 @@ impl Messaging for Nats {
 }
 
 impl Nats {
-    pub async fn new(addr: &str) -> Result<Box<dyn Messaging>, Box<dyn Error>> {
+    pub async fn new(addr: &str) -> Result<Box<dyn Bus>, Box<dyn Error>> {
         let client = rants::Client::new(vec![addr.parse()?]);
         client.connect().await;
         Ok(Box::new(Nats{client}))

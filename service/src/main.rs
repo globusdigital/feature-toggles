@@ -1,6 +1,7 @@
 #[macro_use(bson, doc)]
 extern crate bson;
 
+mod filters;
 mod storage;
 mod messaging;
 
@@ -41,15 +42,8 @@ async fn main() {
 
     let addr: net::SocketAddr = opt.addr.parse().ok().expect("Error parsing address");
 
-    let store = match opt.storage {
-        storage::Type::Mem => storage::MemStore::new(),
-        storage::Type::Mongo => storage::MongoStore::new(&opt.mongodb).ok().expect("Error initializing mongodb storage"),
-    };
-
-    let messaging = match opt.messaging {
-        messaging::Type::Noop => messaging::Noop::new(),
-        messaging::Type::NATS => messaging::Nats::new(&opt.nats).await.ok().expect("Error initializing NATS messaging"),
-    };
+    let store = storage::MemStore::new();
+    let messaging = messaging::Noop::new();
 
     // GET /hello/warp => 200 OK with body "Hello, warp!"
     let hello = warp::path!("hello" / String)
