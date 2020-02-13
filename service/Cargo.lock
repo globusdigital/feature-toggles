@@ -352,6 +352,7 @@ name = "feature-toggles-service"
 version = "0.1.0"
 dependencies = [
  "bson",
+ "futures",
  "mongodb",
  "rants",
  "serde",

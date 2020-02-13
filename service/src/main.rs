@@ -48,7 +48,7 @@ async fn main() {
 
     let messaging = match opt.messaging {
         messaging::Type::Noop => messaging::Noop::new(),
-        messaging::Type::NATS => messaging::Nats::new(&opt.nats).ok().expect("Error initializing NATS messaging"),
+        messaging::Type::NATS => messaging::Nats::new(&opt.nats).await.ok().expect("Error initializing NATS messaging"),
     };
 
     // GET /hello/warp => 200 OK with body "Hello, warp!"
