@@ -1,10 +1,11 @@
 package toggle_test
 
 import (
-	"feature-toggles/toggle"
 	"os"
 	"strings"
 	"testing"
+
+	"github.com/globusdigital/feature-toggles/toggle"
 )
 
 func TestGet(t *testing.T) {

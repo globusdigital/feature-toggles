@@ -1,8 +1,9 @@
 package toggle_test
 
 import (
-	"feature-toggles/toggle"
 	"testing"
+
+	"github.com/globusdigital/feature-toggles/toggle"
 )
 
 func TestClient_Get(t *testing.T) {
