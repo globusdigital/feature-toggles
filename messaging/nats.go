@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/globusdigital/feature-toggles/toggle"
 	"github.com/nats-io/nats.go"
 )
 
@@ -28,17 +27,17 @@ func (b Nats) Clone() {
 	b.conn.Close()
 }
 
-func (b Nats) Send(ctx context.Context, flags []toggle.Flag) error {
+func (b Nats) Send(ctx context.Context, event Event) error {
 	if ctx.Err() != nil {
 		return ctx.Err()
 	}
 
-	data, err := json.Marshal(flags)
+	data, err := json.Marshal(event)
 	if err != nil {
-		return fmt.Errorf("encoding flags: %v", err)
+		return fmt.Errorf("encoding evebt: %v", err)
 	}
 	if err := b.conn.Publish(natsSubject, data); err != nil {
-		return fmt.Errorf("publishing flags: %v", err)
+		return fmt.Errorf("publishing event: %v", err)
 	}
 
 	return nil

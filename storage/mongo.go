@@ -97,3 +97,24 @@ func (s *Mongo) Save(ctx context.Context, flags []toggle.Flag, initial bool) err
 
 	return nil
 }
+
+func (s *Mongo) Delete(ctx context.Context, flags []toggle.Flag) error {
+	coll := s.client.Database(s.db).Collection(flagsCollection)
+
+	models := make([]mongo.WriteModel, 0, len(flags))
+
+	for _, f := range flags {
+		models = append(models, mongo.NewDeleteOneModel().
+			SetFilter(bson.D{{"serviceName", f.ServiceName}, {"name", f.Name}}))
+	}
+
+	if len(models) == 0 {
+		return nil
+	}
+
+	if _, err := coll.BulkWrite(ctx, models); err != nil {
+		return fmt.Errorf("deleting flag data: %v", err)
+	}
+
+	return nil
+}

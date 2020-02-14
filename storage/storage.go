@@ -16,4 +16,5 @@ const (
 type Store interface {
 	Get(ctx context.Context, serviceName string) ([]toggle.Flag, error)
 	Save(ctx context.Context, flags []toggle.Flag, initial bool) error
+	Delete(ctx context.Context, flags []toggle.Flag) error
 }

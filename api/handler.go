@@ -27,15 +27,53 @@ func Handler(store storage.Store, bus messaging.Bus) http.Handler {
 
 		r.Route("/{serviceName}", func(r chi.Router) {
 			r.With(middleware.Timeout(time.Second*2)).Get("/", getFlags(store))
-			r.With(middleware.Timeout(time.Second*10)).Post("/", saveFlags(store, bus))
+			r.With(middleware.Timeout(time.Second*10), flagsCtx).Post("/", saveFlags(store, bus))
+			r.With(middleware.Timeout(time.Second*10), flagsCtx).Delete("/", deleteFlags(store, bus))
 
 			r.Route("/initial", func(r chi.Router) {
-				r.With(middleware.Timeout(time.Second*12)).Post("/", saveInitialFlags(store))
+				r.With(middleware.Timeout(time.Second*12), flagsCtx).Post("/", saveInitialFlags(store))
 			})
 		})
 	})
 
 	return r
+}
+
+type flagsCtxType string
+
+var flagsKey flagsCtxType = "flags"
+
+func flagsCtx(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		b, err := ioutil.ReadAll(r.Body)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		var flags []toggle.Flag
+		if err := json.Unmarshal(b, &flags); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		if len(flags) == 0 {
+			http.Error(w, "No flags given", http.StatusBadRequest)
+			return
+		}
+
+		serviceName := chi.URLParam(r, "serviceName")
+
+		for _, f := range flags {
+			if f.ServiceName != serviceName && f.ServiceName != "" {
+				http.Error(w, fmt.Sprintf("Invalid flag: %v", f), http.StatusBadRequest)
+				return
+			}
+		}
+
+		ctx := context.WithValue(r.Context(), flagsKey, flags)
+		next.ServeHTTP(w, r.WithContext(ctx))
+	})
 }
 
 func getAllFlags(store storage.Store) http.HandlerFunc {
@@ -53,9 +91,12 @@ func getFlags(store storage.Store) http.HandlerFunc {
 
 func saveFlags(store storage.Store, bus messaging.Bus) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		serviceName := chi.URLParam(r, "serviceName")
-		flags := saveFlagsForService(r.Context(), serviceName, false, store, w, r.Body)
-		if err := bus.Send(r.Context(), flags); err != nil {
+		ctx := r.Context()
+		flags := getFlagsFromCtx(ctx)
+		if saveFlagsForService(ctx, flags, false, store, w, r.Body) {
+			return
+		}
+		if err := bus.Send(ctx, messaging.Event{Type: messaging.SaveEvent, Flags: flags}); err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
@@ -65,9 +106,28 @@ func saveFlags(store storage.Store, bus messaging.Bus) http.HandlerFunc {
 
 func saveInitialFlags(store storage.Store) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		ctx := r.Context()
+		flags := getFlagsFromCtx(ctx)
+		if saveFlagsForService(ctx, flags, true, store, w, r.Body) {
+			return
+		}
 		serviceName := chi.URLParam(r, "serviceName")
-		saveFlagsForService(r.Context(), serviceName, true, store, w, r.Body)
 		getFlagsForServiceName(r.Context(), serviceName, store, w)
+	}
+}
+
+func deleteFlags(store storage.Store, bus messaging.Bus) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		ctx := r.Context()
+		flags := getFlagsFromCtx(ctx)
+		if saveFlagsForService(ctx, flags, false, store, w, r.Body) {
+			return
+		}
+		if err := bus.Send(ctx, messaging.Event{Type: messaging.DeleteEvent, Flags: flags}); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		w.WriteHeader(http.StatusNoContent)
 	}
 }
 
@@ -87,30 +147,19 @@ func getFlagsForServiceName(ctx context.Context, serviceName string, store stora
 	w.Write(b)
 }
 
-func saveFlagsForService(ctx context.Context, serviceName string, initial bool, store storage.Store, w http.ResponseWriter, r io.Reader) []toggle.Flag {
-	b, err := ioutil.ReadAll(r)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return nil
-	}
-
-	var flags []toggle.Flag
-	if err := json.Unmarshal(b, &flags); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return nil
-	}
-
-	for _, f := range flags {
-		if f.ServiceName != serviceName && f.ServiceName != "" {
-			http.Error(w, fmt.Sprintf("Invalid flag: %v", f), http.StatusBadRequest)
-			return nil
-		}
-	}
-
+func saveFlagsForService(ctx context.Context, flags []toggle.Flag, initial bool, store storage.Store, w http.ResponseWriter, r io.Reader) bool {
 	if err := store.Save(ctx, flags, initial); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return nil
+		return true
 	}
 
-	return flags
+	return false
+}
+
+func getFlagsFromCtx(ctx context.Context) []toggle.Flag {
+	if flags, ok := ctx.Value(flagsKey).([]toggle.Flag); ok {
+		return flags
+	}
+
+	return nil
 }

@@ -52,5 +52,22 @@ func (s *Mem) Save(ctx context.Context, flags []toggle.Flag, initial bool) error
 			s.data[key] = f
 		}
 	}
+
+	return nil
+}
+
+func (s *Mem) Delete(ctx context.Context, flags []toggle.Flag) error {
+	if ctx.Err() != nil {
+		return ctx.Err()
+	}
+
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	for _, f := range flags {
+		key := flagKey{f.Name, f.ServiceName}
+		delete(s.data, key)
+	}
+
 	return nil
 }
