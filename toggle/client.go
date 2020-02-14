@@ -13,10 +13,11 @@ type Client struct {
 }
 
 type Flag struct {
-	ServiceName string
+	Name        string `json:"name,omitempty"`
+	ServiceName string `json:"serviceName"`
 
-	RawValue string
-	Value    bool
+	RawValue string `json:"rawValue"`
+	Value    bool   `json:"value"`
 }
 
 func New(name string) *Client {
