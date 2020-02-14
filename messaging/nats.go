@@ -17,7 +17,7 @@ type Nats struct {
 func NewNats(url string) (Nats, error) {
 	conn, err := nats.Connect(url)
 	if err != nil {
-		return Nats{}, fmt.Errorf("connecting to NATS", err)
+		return Nats{}, fmt.Errorf("connecting to NATS: %v", err)
 	}
 
 	return Nats{conn}, nil

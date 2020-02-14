@@ -3,9 +3,11 @@ package api
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"time"
 
@@ -51,9 +53,15 @@ func flagsCtx(next http.Handler) http.Handler {
 			return
 		}
 
+		log.Println(string(b))
 		var flags []toggle.Flag
 		if err := json.Unmarshal(b, &flags); err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+			status := http.StatusInternalServerError
+			e := &json.SyntaxError{}
+			if errors.As(err, &e) {
+				status = http.StatusBadRequest
+			}
+			http.Error(w, err.Error(), status)
 			return
 		}
 
