@@ -22,12 +22,6 @@ before_script:
   - curl -sfL https://install.goreleaser.com/github.com/golangci/golangci-lint.sh | sh -s -- -b $(go env GOPATH)/bin v1.23.1
 
 script:
-  # Run linter
-  - go vet ./...
-
-  # Run linter
-  - golangci-lint run ./...
-
   # Run all the tests with the race detector enabled
   - overalls -project=github.com/globusdigital/feature-toggles -covermode=atomic -debug -- -race -v -coverpkg=./...
   - $HOME/gopath/bin/goveralls -coverprofile=overalls.coverprofile -service=travis-ci -repotoken=$COVERALLS_TOKEN
