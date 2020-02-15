@@ -117,15 +117,15 @@ func main() {
 		}
 	}()
 
-	select {
-	case <-c:
-		log.Println("Terminating server")
-		ctx, cancel := context.WithTimeout(mainCtx, time.Minute)
-		defer cancel()
+	<-c
+	log.Println("Terminating server")
+	ctx, cancel = context.WithTimeout(mainCtx, time.Minute)
+	defer cancel()
 
-		server.Shutdown(ctx)
-		cancel()
+	if err := server.Shutdown(ctx); err != nil {
+		log.Println("Error shutting down server:", err)
 	}
+	cancel()
 }
 
 func init() {
