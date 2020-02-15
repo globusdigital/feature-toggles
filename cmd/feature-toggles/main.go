@@ -95,7 +95,7 @@ func main() {
 	defer cancel()
 
 	c := make(chan os.Signal, 1)
-	signal.Notify(c, os.Interrupt, syscall.SIGSTOP)
+	signal.Notify(c, os.Interrupt, syscall.SIGQUIT)
 
 	ctx, cancel := context.WithTimeout(mainCtx, time.Minute)
 	defer cancel()

@@ -37,10 +37,13 @@ func NewMongo(ctx context.Context, url string) (*Mongo, error) {
 		return nil, fmt.Errorf("connecting to mongo server: %v", err)
 	}
 
-	client.Database(cs.Database).Collection(flagsCollection).Indexes().CreateOne(ctx, mongo.IndexModel{
+	_, err = client.Database(cs.Database).Collection(flagsCollection).Indexes().CreateOne(ctx, mongo.IndexModel{
 		Keys:    bson.D{{"serviceName", 1}, {"name", 1}},
 		Options: options.Index().SetUnique(true),
 	})
+	if err != nil {
+		return nil, fmt.Errorf("creating indices: %v", err)
+	}
 
 	return &Mongo{client, cs.Database}, nil
 }
