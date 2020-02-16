@@ -9,7 +9,7 @@ import (
 
 	"github.com/globusdigital/feature-toggles/toggle"
 	gomock "github.com/golang/mock/gomock"
-	"github.com/tj/assert"
+	"github.com/stretchr/testify/assert"
 )
 
 var (

@@ -21,8 +21,6 @@ func NewMem() *Mem {
 }
 
 func (s *Mem) Get(ctx context.Context, serviceName string) ([]toggle.Flag, error) {
-	ret := make([]toggle.Flag, 0, len(s.data))
-
 	if ctx.Err() != nil {
 		return nil, ctx.Err()
 	}
@@ -30,6 +28,7 @@ func (s *Mem) Get(ctx context.Context, serviceName string) ([]toggle.Flag, error
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
+	var ret []toggle.Flag
 	for _, f := range s.data {
 		if f.ServiceName == "" || f.ServiceName == serviceName || serviceName == "" {
 			ret = append(ret, f)
