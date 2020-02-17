@@ -173,7 +173,7 @@ func (c *Client) seedFlags(ctx context.Context, addr string) error {
 		return fmt.Errorf("encoding initial flag data: %v", err)
 	}
 
-	r, err := http.NewRequestWithContext(ctx, "POST", addr+"/"+path.Join("flag", c.name, "initial"), bytes.NewReader(b))
+	r, err := http.NewRequestWithContext(ctx, "POST", addr+"/"+path.Join("flags", c.name, "initial"), bytes.NewReader(b))
 	if err != nil {
 		return fmt.Errorf("creating initial flag request: %v", err)
 	}
@@ -193,7 +193,7 @@ func (c *Client) seedFlags(ctx context.Context, addr string) error {
 }
 
 func (c *Client) pollFlags(ctx context.Context, addr string) error {
-	r, err := http.NewRequestWithContext(ctx, "GET", addr+"/"+path.Join("flag", c.name), nil)
+	r, err := http.NewRequestWithContext(ctx, "GET", addr+"/"+path.Join("flags", c.name), nil)
 	if err != nil {
 		return fmt.Errorf("creating update poll flag request: %v", err)
 	}

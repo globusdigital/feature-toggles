@@ -122,6 +122,10 @@ func TestClient_Connect(t *testing.T) {
 					return
 				}
 
+				if !strings.Contains(r.URL.Path, "/flags") {
+					t.Fatalf("Invalid request path %s", r.URL.Path)
+				}
+
 				if strings.HasSuffix(r.URL.Path, "/initial") {
 					if tt.jsonErr {
 						w.Write([]byte(`[{foo:1]`))
