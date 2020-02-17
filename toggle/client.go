@@ -19,18 +19,6 @@ const (
 	globalName    = "_GLOBAL__"
 )
 
-var (
-	// ServerAddressFlag is a feature flag which enables working with a centralized
-	// toggle server. It's value is the server address
-	ServerAddressFlag = "TOGGLE_SERVER"
-
-	// UpdateDuration is the update cycle duration when the toggle server is implemented
-	UpdateDuration = 30 * time.Minute
-
-	// HttpClient is the http client used to communicate with the server
-	HttpClient = http.DefaultClient
-)
-
 type Client struct {
 	name  string
 	store map[string][]Flag

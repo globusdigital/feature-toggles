@@ -101,12 +101,12 @@ func main() {
 	defer cancel()
 	store, err := opts.Store(ctx)
 	if err != nil {
-		log.Fatalf("Error initializing store")
+		log.Fatalf("Error initializing store: %v", err)
 	}
 
 	bus, err := opts.Bus()
 	if err != nil {
-		log.Fatalf("Error initializing messaging bus")
+		log.Fatalf("Error initializing messaging bus: %v", err)
 	}
 
 	server := &http.Server{Addr: opts.addr, Handler: api.Handler(store, bus)}
