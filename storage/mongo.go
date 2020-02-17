@@ -64,6 +64,10 @@ func (s *Mongo) Get(ctx context.Context, serviceName string) ([]toggle.Flag, err
 		return nil, fmt.Errorf("decoding flag data: %v", err)
 	}
 
+	if len(flags) == 0 {
+		return nil, nil
+	}
+
 	ret := make([]toggle.Flag, len(flags))
 	for i := range flags {
 		ret[i] = toggle.Flag(flags[i])
