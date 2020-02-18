@@ -162,9 +162,7 @@ func (c *Client) seedFlags(ctx context.Context, addr string) error {
 	data := make([]Flag, 0, len(c.store))
 
 	for _, flags := range c.store {
-		for _, f := range flags {
-			data = append(data, f)
-		}
+		data = append(data, flags...)
 	}
 	c.mu.RUnlock()
 
