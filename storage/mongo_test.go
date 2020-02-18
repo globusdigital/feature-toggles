@@ -183,7 +183,7 @@ func getTempDB(t *testing.T) (string, func()) {
 		t.Skipf("Mongodb ping error: %v", err)
 	}
 
-	client.Disconnect(ctx)
+	_ = client.Disconnect(ctx)
 
 	return mongoURL + db, func() {
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second)

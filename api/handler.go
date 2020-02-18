@@ -152,7 +152,7 @@ func getFlagsForServiceName(ctx context.Context, serviceName string, store stora
 		return
 	}
 
-	w.Write(b)
+	_, _ = w.Write(b)
 }
 
 func saveFlagsForService(ctx context.Context, flags []toggle.Flag, initial bool, store storage.Store, w http.ResponseWriter, r io.Reader) bool {

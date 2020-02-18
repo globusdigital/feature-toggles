@@ -128,20 +128,20 @@ func TestClient_Connect(t *testing.T) {
 
 				if strings.HasSuffix(r.URL.Path, "/initial") {
 					if tt.jsonErr {
-						w.Write([]byte(`[{foo:1]`))
+						_, _ = w.Write([]byte(`[{foo:1]`))
 						return
 					}
 					b, err := json.Marshal(initialData)
 					a.NoError(err)
-					w.Write(b)
+					_, _ = w.Write(b)
 				} else {
 					if tt.pollErr {
-						w.Write([]byte(`[{foo:1]`))
+						_, _ = w.Write([]byte(`[{foo:1]`))
 						return
 					}
 					b, err := json.Marshal(update1)
 					a.NoError(err)
-					w.Write(b)
+					_, _ = w.Write(b)
 				}
 			}))
 			defer ts.Close()
