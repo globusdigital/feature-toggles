@@ -20,7 +20,9 @@ const (
 )
 
 type Client struct {
-	name  string
+	name string
+	opts clientOptions
+
 	store map[string][]Flag
 	mu    sync.RWMutex
 }
@@ -31,11 +33,17 @@ type Flag struct {
 
 	RawValue string `json:"rawValue"`
 	Value    bool   `json:"value"`
+
+	Condition Condition `json:"condition"`
 }
 
 // New creates a new toggle client with the given service name
-func New(name string) *Client {
-	return &Client{name: normalizeSerivceName(name), store: map[string][]Flag{}}
+func New(name string, opts ...ClientOption) *Client {
+	o := (clientOptions{Values: []ConditionValue{
+		{Name: ServiceNameValue, Type: StringValue, Value: name},
+	}}).Apply(opts)
+
+	return &Client{name: normalizeSerivceName(name), opts: o, store: map[string][]Flag{}}
 }
 
 // Get returns the boolean flag value
@@ -64,6 +72,13 @@ func (c *Client) getFlag(name string, o getOptions) Flag {
 	for _, f := range c.store[name] {
 		if f.ServiceName != c.name && (f.ServiceName != "" || !o.Global) {
 			continue
+		}
+
+		values := make([]ConditionValue, len(c.opts.Values)+len(o.Values))
+		copy(values, c.opts.Values)
+		copy(values[len(c.opts.Values):], o.Values)
+		if !f.Condition.Match(values) {
+			break
 		}
 
 		return f

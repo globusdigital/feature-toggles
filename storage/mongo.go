@@ -24,6 +24,8 @@ type flag struct {
 
 	RawValue string `bson:"rawValue"`
 	Value    bool   `bson:"value"`
+
+	Condition toggle.Condition `bson:"condition"`
 }
 
 func NewMongo(ctx context.Context, url string) (*Mongo, error) {

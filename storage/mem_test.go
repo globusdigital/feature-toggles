@@ -2,6 +2,7 @@ package storage
 
 import (
 	"context"
+	"reflect"
 	"sort"
 	"testing"
 
@@ -105,7 +106,7 @@ func TestMem_Save(t *testing.T) {
 			for _, v := range s.data {
 				var found bool
 				for _, e := range tt.expected {
-					if e == v {
+					if reflect.DeepEqual(e, v) {
 						found = true
 					}
 				}
@@ -151,7 +152,7 @@ func TestMem_Delete(t *testing.T) {
 			for _, v := range s.data {
 				var found bool
 				for _, e := range tt.expected {
-					if e == v {
+					if reflect.DeepEqual(e, v) {
 						found = true
 					}
 				}

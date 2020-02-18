@@ -49,6 +49,25 @@ var (
 		{Name: "feature.6", ServiceName: "serv2", RawValue: "some data"},
 		{Name: "some.shared.feature", ServiceName: "", RawValue: "t", Value: true},
 	}
+
+	cond1 = []toggle.Flag{
+		{Name: "feature.1", ServiceName: "serv1", RawValue: "1", Value: true},
+		{Name: "some.shared.feature", ServiceName: "", RawValue: "t", Value: true, Condition: toggle.Condition{
+			Op: toggle.OrOp,
+			Fields: []toggle.ConditionField{
+				{ConditionValue: toggle.ConditionValue{Name: toggle.ServiceNameValue, Type: toggle.StringValue, Value: "serv1"}},
+				{ConditionValue: toggle.ConditionValue{Name: toggle.ServiceNameValue, Type: toggle.StringValue, Value: "serv3"}},
+			},
+		}},
+	}
+
+	cond2 = []toggle.Flag{
+		{Name: "feature.1", ServiceName: "serv1", RawValue: "some value", Condition: toggle.Condition{
+			Fields: []toggle.ConditionField{
+				{ConditionValue: toggle.ConditionValue{Name: "userID", Type: toggle.IntValue, Value: int64(10)}, Op: toggle.LtOp},
+			},
+		}},
+	}
 )
 
 func TestClient_Get(t *testing.T) {
@@ -97,12 +116,15 @@ func TestClient_Connect(t *testing.T) {
 	tests := []struct {
 		name      string
 		cname     string
+		copts     []toggle.ClientOption
 		ctx       func() context.Context
 		enable    bool
 		seed      []string
 		serverErr bool
 		jsonErr   bool
 		pollErr   bool
+		update    []toggle.Flag
+		opts      []toggle.Option
 		wantErr   bool
 		want      []toggle.Flag
 	}{
@@ -111,7 +133,11 @@ func TestClient_Connect(t *testing.T) {
 		{name: "server error", cname: "serv1", ctx: canceledCtx(time.Second), seed: seed1, serverErr: true, enable: true, wantErr: true},
 		{name: "invalid json", cname: "serv1", ctx: canceledCtx(time.Second), seed: seed1, jsonErr: true, enable: true, wantErr: true},
 		{name: "poll json", cname: "serv1", ctx: canceledCtx(time.Second), seed: seed1, pollErr: true, enable: true, wantErr: true},
-		{name: "poll", cname: "serv1", ctx: canceledCtx(time.Second), seed: seed1, enable: true, want: update1},
+		{name: "poll", cname: "serv1", ctx: canceledCtx(time.Second), seed: seed1, enable: true, update: update1, want: update1},
+		{name: "conditional 1", cname: "serv1", ctx: canceledCtx(time.Second), seed: seed1, enable: true, update: cond1, want: cond1},
+		{name: "conditional 1 - serv2", cname: "serv2", ctx: canceledCtx(time.Second), seed: seed1, enable: true, update: cond1},
+		{name: "conditional 2", cname: "serv1", ctx: canceledCtx(time.Second), seed: seed1, enable: true, update: cond2, want: []toggle.Flag{{Name: "feature.1", ServiceName: "serv1"}}},
+		{name: "conditional 2 - val 20", cname: "serv1", ctx: canceledCtx(time.Second), seed: seed1, enable: true, update: cond2, opts: []toggle.Option{toggle.ForInt("userID", 20)}, want: cond2},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -139,7 +165,7 @@ func TestClient_Connect(t *testing.T) {
 						_, _ = w.Write([]byte(`[{foo:1]`))
 						return
 					}
-					b, err := json.Marshal(update1)
+					b, err := json.Marshal(tt.update)
 					a.NoError(err)
 					_, _ = w.Write(b)
 				}
@@ -150,7 +176,7 @@ func TestClient_Connect(t *testing.T) {
 				tt.seed = append(tt.seed, "FEATURE__GLOBAL__"+toggle.ServerAddressFlag+"="+ts.URL)
 			}
 
-			c := toggle.New(tt.cname)
+			c := toggle.New(tt.cname, tt.copts...)
 			c.ParseEnv(tt.seed)
 
 			toggle.UpdateDuration = 100 * time.Millisecond
@@ -170,9 +196,10 @@ func TestClient_Connect(t *testing.T) {
 				for _, f := range tt.want {
 					var value string
 					if f.ServiceName == "" {
-						value = c.GetRaw(f.Name, toggle.Global)
+						opts := append([]toggle.Option{toggle.Global}, tt.opts...)
+						value = c.GetRaw(f.Name, opts...)
 					} else if f.ServiceName == tt.cname {
-						value = c.GetRaw(f.Name)
+						value = c.GetRaw(f.Name, tt.opts...)
 					} else {
 						continue
 					}

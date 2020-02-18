@@ -23,6 +23,8 @@ var (
 	DefaultClient *Client
 )
 
+// Initialize creates the global DefaultClient instance, parses the local
+// environment and attempts to connect to a feature toggles server.
 func Initialize(ctx context.Context, name string) {
 	DefaultClient = New(name)
 	DefaultClient.ParseEnv(os.Environ())
@@ -40,10 +42,12 @@ func Initialize(ctx context.Context, name string) {
 	}()
 }
 
+// Get calls the DefaultClient.Get method
 func Get(name string, opts ...Option) bool {
 	return DefaultClient.Get(name, opts...)
 }
 
+// GetRaw calls the DefaultClient.GetRaw method
 func GetRaw(name string, opts ...Option) string {
 	return DefaultClient.GetRaw(name, opts...)
 }

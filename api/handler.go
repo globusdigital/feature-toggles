@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"time"
 
@@ -53,7 +52,6 @@ func flagsCtx(next http.Handler) http.Handler {
 			return
 		}
 
-		log.Println(string(b))
 		var flags []toggle.Flag
 		if err := json.Unmarshal(b, &flags); err != nil {
 			status := http.StatusInternalServerError

@@ -3,6 +3,7 @@ package storage
 import (
 	"context"
 	"fmt"
+	"reflect"
 	"sort"
 	"testing"
 	"time"
@@ -106,7 +107,7 @@ func TestMongo_Save(t *testing.T) {
 			for _, v := range data {
 				var found bool
 				for _, e := range tt.expected {
-					if e == toggle.Flag(v) {
+					if reflect.DeepEqual(e, toggle.Flag(v)) {
 						found = true
 					}
 				}
@@ -158,7 +159,7 @@ func TestMongo_Delete(t *testing.T) {
 			for _, v := range data {
 				var found bool
 				for _, e := range tt.expected {
-					if e == toggle.Flag(v) {
+					if reflect.DeepEqual(e, toggle.Flag(v)) {
 						found = true
 					}
 				}
