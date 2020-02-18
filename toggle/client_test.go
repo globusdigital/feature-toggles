@@ -55,8 +55,8 @@ var (
 		{Name: "some.shared.feature", ServiceName: "", RawValue: "t", Value: true, Condition: toggle.Condition{
 			Op: toggle.OrOp,
 			Fields: []toggle.ConditionField{
-				{ConditionValue: toggle.ConditionValue{Name: toggle.ServiceNameValue, Type: toggle.StringValue, Value: "serv1"}},
-				{ConditionValue: toggle.ConditionValue{Name: toggle.ServiceNameValue, Type: toggle.StringValue, Value: "serv3"}},
+				{ConditionValue: toggle.ConditionValue{Name: toggle.ServiceNameValue, Type: toggle.StringType, Value: "serv1"}},
+				{ConditionValue: toggle.ConditionValue{Name: toggle.ServiceNameValue, Type: toggle.StringType, Value: "serv3"}},
 			},
 		}},
 	}
@@ -64,7 +64,7 @@ var (
 	cond2 = []toggle.Flag{
 		{Name: "feature.1", ServiceName: "serv1", RawValue: "some value", Condition: toggle.Condition{
 			Fields: []toggle.ConditionField{
-				{ConditionValue: toggle.ConditionValue{Name: "userID", Type: toggle.IntValue, Value: int64(10)}, Op: toggle.LtOp},
+				{ConditionValue: toggle.ConditionValue{Name: "userID", Type: toggle.IntType, Value: int64(10)}, Op: toggle.LtOp},
 			},
 		}},
 	}

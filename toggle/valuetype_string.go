@@ -8,9 +8,9 @@ func _() {
 	// An "invalid array index" compiler error signifies that the constant values have changed.
 	// Re-run the stringer command to generate them again.
 	var x [1]struct{}
-	_ = x[IntValue-0]
-	_ = x[FloatValue-1]
-	_ = x[StringValue-2]
+	_ = x[IntType-0]
+	_ = x[FloatType-1]
+	_ = x[StringType-2]
 }
 
 const _ValueType_name = "intfloatstring"

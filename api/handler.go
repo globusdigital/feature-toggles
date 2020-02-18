@@ -75,6 +75,11 @@ func flagsCtx(next http.Handler) http.Handler {
 				http.Error(w, fmt.Sprintf("Invalid flag: %v", f), http.StatusBadRequest)
 				return
 			}
+
+			if err := f.Condition.Validate(); err != nil {
+				http.Error(w, fmt.Sprintf("Invalid flag %s condition: %v", f, err), http.StatusBadRequest)
+				return
+			}
 		}
 
 		ctx := context.WithValue(r.Context(), flagsKey, flags)

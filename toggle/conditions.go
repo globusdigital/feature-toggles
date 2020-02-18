@@ -11,9 +11,9 @@ type ConditionOp int
 type FieldOp int
 
 const (
-	IntValue    ValueType = iota // int
-	FloatValue                   // float
-	StringValue                  // string
+	IntType    ValueType = iota // int
+	FloatType                   // float
+	StringType                  // string
 )
 
 const (
@@ -58,8 +58,10 @@ func (v *ConditionField) UnmarshalJSON(b []byte) error {
 		return err
 	}
 
-	if val.Type == IntValue {
-		val.Value = int64(val.Value.(float64))
+	if val.Type == IntType {
+		if f, ok := val.Value.(float64); ok {
+			val.Value = int64(f)
+		}
 	}
 
 	*v = ConditionField(val)
@@ -75,15 +77,15 @@ func (f ConditionField) String() string {
 // Validate checks if the value type and its underlying type are consistent
 func (v ConditionValue) Validate() error {
 	switch v.Type {
-	case IntValue:
+	case IntType:
 		if _, ok := v.Value.(int64); !ok {
 			return fmt.Errorf("invalid int type for value %T", v.Value)
 		}
-	case FloatValue:
+	case FloatType:
 		if _, ok := v.Value.(float64); !ok {
 			return fmt.Errorf("invalid float64 type for value %T", v.Value)
 		}
-	case StringValue:
+	case StringType:
 		if _, ok := v.Value.(string); !ok {
 			return fmt.Errorf("invalid string type for value %T", v.Value)
 		}
@@ -91,6 +93,23 @@ func (v ConditionValue) Validate() error {
 		return fmt.Errorf("invalid type %v", v.Type)
 
 	}
+	return nil
+}
+
+// Validate checks if the condition data is valid
+func (c Condition) Validate() error {
+	for _, c := range c.Conditions {
+		if err := c.Validate(); err != nil {
+			return err
+		}
+	}
+
+	for _, f := range c.Fields {
+		if err := f.Validate(); err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 
@@ -202,11 +221,11 @@ func (f ConditionField) ne(v ConditionValue) bool {
 
 func (f ConditionField) lt(v ConditionValue) bool {
 	switch f.Type {
-	case IntValue:
+	case IntType:
 		return f.Value.(int64) < v.Value.(int64)
-	case FloatValue:
+	case FloatType:
 		return f.Value.(float64) < v.Value.(float64)
-	case StringValue:
+	case StringType:
 		return f.Value.(string) < v.Value.(string)
 	}
 	return false
@@ -214,11 +233,11 @@ func (f ConditionField) lt(v ConditionValue) bool {
 
 func (f ConditionField) gt(v ConditionValue) bool {
 	switch f.Type {
-	case IntValue:
+	case IntType:
 		return f.Value.(int64) > v.Value.(int64)
-	case FloatValue:
+	case FloatType:
 		return f.Value.(float64) > v.Value.(float64)
-	case StringValue:
+	case StringType:
 		return f.Value.(string) > v.Value.(string)
 	}
 	return false

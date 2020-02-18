@@ -40,7 +40,7 @@ type Flag struct {
 // New creates a new toggle client with the given service name
 func New(name string, opts ...ClientOption) *Client {
 	o := (clientOptions{Values: []ConditionValue{
-		{Name: ServiceNameValue, Type: StringValue, Value: name},
+		{Name: ServiceNameValue, Type: StringType, Value: name},
 	}}).Apply(opts)
 
 	return &Client{name: normalizeSerivceName(name), opts: o, store: map[string][]Flag{}}

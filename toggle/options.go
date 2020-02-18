@@ -33,19 +33,19 @@ func (o getOptions) Apply(opts []Option) getOptions {
 
 func ForInt(name string, value int64) Option {
 	return func(o *getOptions) {
-		o.Values = append(o.Values, ConditionValue{Name: name, Value: value, Type: IntValue})
+		o.Values = append(o.Values, ConditionValue{Name: name, Value: value, Type: IntType})
 	}
 }
 
 func ForFloat(name string, value float64) Option {
 	return func(o *getOptions) {
-		o.Values = append(o.Values, ConditionValue{Name: name, Value: value, Type: FloatValue})
+		o.Values = append(o.Values, ConditionValue{Name: name, Value: value, Type: FloatType})
 	}
 }
 
 func ForString(name string, value string) Option {
 	return func(o *getOptions) {
-		o.Values = append(o.Values, ConditionValue{Name: name, Value: value, Type: StringValue})
+		o.Values = append(o.Values, ConditionValue{Name: name, Value: value, Type: StringType})
 	}
 }
 
@@ -61,11 +61,11 @@ func For(values ...ConditionValue) ClientOption {
 	for i := range values {
 		switch v := values[i].Value.(type) {
 		case int64:
-			values[i].Type = IntValue
+			values[i].Type = IntType
 		case float64:
-			values[i].Type = FloatValue
+			values[i].Type = FloatType
 		case string:
-			values[i].Type = StringValue
+			values[i].Type = StringType
 		default:
 			panic(fmt.Sprintf("Unsupported type: %T", v))
 		}
