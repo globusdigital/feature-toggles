@@ -5,6 +5,7 @@ import (
 	"os"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/globusdigital/feature-toggles/toggle"
 )
@@ -42,7 +43,11 @@ func TestGet(t *testing.T) {
 				parts := strings.SplitN(s, "=", 2)
 				os.Setenv(parts[0], parts[1])
 			}
-			toggle.Initialize(context.Background(), tt.cname)
+
+			ctx, cancel := context.WithCancel(context.Background())
+			time.AfterFunc(10*time.Millisecond, cancel)
+
+			toggle.Initialize(ctx, tt.cname)
 
 			if tt.sub {
 				toggle.DefaultClient = toggle.New(tt.cname)
@@ -53,6 +58,8 @@ func TestGet(t *testing.T) {
 			if got := toggle.GetRaw(tt.args.name, tt.args.opts...); got != tt.wantRaw {
 				t.Errorf("Client.Get() = %v, want %v", got, tt.wantRaw)
 			}
+
+			<-ctx.Done()
 		})
 	}
 }
