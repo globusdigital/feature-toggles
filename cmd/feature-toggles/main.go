@@ -14,6 +14,7 @@ import (
 	"github.com/globusdigital/feature-toggles/api"
 	"github.com/globusdigital/feature-toggles/messaging"
 	"github.com/globusdigital/feature-toggles/storage"
+	"github.com/nats-io/nats.go"
 )
 
 type options struct {
@@ -78,7 +79,12 @@ func (o options) Bus() (messaging.Bus, error) {
 	case messaging.NoopKind:
 		return messaging.NewNoop(), nil
 	case messaging.NatsKind:
-		return messaging.NewNats(o.nats)
+		return messaging.NewNats(o.nats,
+			nats.MaxReconnects(-1),
+			nats.ReconnectBufSize(messaging.DefaultNatsReconnectBufSize),
+			nats.PingInterval(messaging.DefaultNatsPingInterval),
+			nats.Token(os.Getenv("NATS_TOKEN")),
+		)
 	}
 
 	return nil, errors.New("unknown messaging type")

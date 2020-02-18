@@ -2,28 +2,37 @@ package messaging
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
+	"time"
 
 	"github.com/nats-io/nats.go"
 )
 
-const natsSubject = "feature-toggles"
+const (
+	DefaultNatsReconnectBufSize = 16 * 1024 * 1024
+	DefaultNatsPingInterval     = time.Minute
+	natsSubject                 = "feature-toggles"
+)
 
 type Nats struct {
-	conn *nats.Conn
+	conn *nats.EncodedConn
 }
 
-func NewNats(url string) (Nats, error) {
-	conn, err := nats.Connect(url)
+func NewNats(url string, opts ...nats.Option) (Nats, error) {
+	conn, err := nats.Connect(url, opts...)
 	if err != nil {
-		return Nats{}, fmt.Errorf("connecting to NATS: %v", err)
+		return Nats{}, fmt.Errorf("connecting to NATS: %w", err)
 	}
 
-	return Nats{conn}, nil
+	encoded, err := nats.NewEncodedConn(conn, nats.JSON_ENCODER)
+	if err != nil {
+		return Nats{}, fmt.Errorf("creating json encoded connection: %v", err)
+	}
+
+	return Nats{encoded}, nil
 }
 
-func (b Nats) Clone() {
+func (b Nats) Close() {
 	b.conn.Close()
 }
 
@@ -32,11 +41,7 @@ func (b Nats) Send(ctx context.Context, event Event) error {
 		return ctx.Err()
 	}
 
-	data, err := json.Marshal(event)
-	if err != nil {
-		return fmt.Errorf("encoding evebt: %v", err)
-	}
-	if err := b.conn.Publish(natsSubject, data); err != nil {
+	if err := b.conn.Publish(natsSubject, event); err != nil {
 		return fmt.Errorf("publishing event: %v", err)
 	}
 

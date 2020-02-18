@@ -38,7 +38,7 @@ type ConditionValue struct {
 
 type ConditionField struct {
 	ConditionValue
-	Op FieldOp `json:"op"`
+	Op FieldOp `json:"op,omitempty"`
 }
 
 type Condition struct {
