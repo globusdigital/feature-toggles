@@ -3,6 +3,7 @@ package toggle
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
 )
 
 type ValueType int
@@ -10,21 +11,21 @@ type ConditionOp int
 type FieldOp int
 
 const (
-	IntValue ValueType = iota
-	FloatValue
-	StringValue
+	IntValue    ValueType = iota // int
+	FloatValue                   // float
+	StringValue                  // string
 )
 
 const (
-	AndOp ConditionOp = iota
-	OrOp
+	AndOp ConditionOp = iota // &&
+	OrOp                     // ||
 )
 
 const (
-	EqOp FieldOp = iota
-	NeOp
-	LtOp
-	GtOp
+	EqOp FieldOp = iota // =
+	NeOp                // !=
+	LtOp                // <
+	GtOp                // >
 
 	ServiceNameValue = "serviceName"
 )
@@ -66,6 +67,11 @@ func (v *ConditionField) UnmarshalJSON(b []byte) error {
 	return nil
 }
 
+// String returns a human-readable representation of a condition field
+func (f ConditionField) String() string {
+	return fmt.Sprintf("%s %s %s(%v)", f.Name, f.Op, f.Type, f.Value)
+}
+
 // Validate checks if the value type and its underlying type are consistent
 func (v ConditionValue) Validate() error {
 	switch v.Type {
@@ -91,6 +97,35 @@ func (v ConditionValue) Validate() error {
 // Match checks if the given condition values match the condition logic
 func (c Condition) Match(values []ConditionValue) bool {
 	return c.match(values)
+}
+
+// String returns a human-readable string representation of the condition
+func (c Condition) String() string {
+	var b strings.Builder
+
+	stringers := make([]fmt.Stringer, 0, len(c.Conditions)+len(c.Fields))
+	for _, m := range c.Conditions {
+		stringers = append(stringers, m)
+	}
+	for _, m := range c.Fields {
+		stringers = append(stringers, m)
+	}
+
+	b.WriteRune('(')
+
+	for i, s := range stringers {
+		if i > 0 {
+			b.WriteRune(' ')
+			b.WriteString(c.Op.String())
+			b.WriteRune(' ')
+		}
+
+		b.WriteString(s.String())
+	}
+
+	b.WriteRune(')')
+
+	return b.String()
 }
 
 func (c Condition) hasMatchers() bool {

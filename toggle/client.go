@@ -260,5 +260,8 @@ func normalizeName(value string) string {
 }
 
 func (f Flag) String() string {
+	if f.Condition.hasMatchers() {
+		return fmt.Sprintf("%s=%s %s", f.Name, f.RawValue, f.Condition)
+	}
 	return f.Name + "=" + f.RawValue
 }
