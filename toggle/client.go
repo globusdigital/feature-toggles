@@ -260,6 +260,10 @@ func normalizeName(value string) string {
 }
 
 func (f Flag) String() string {
+	name := f.Name
+	if f.ServiceName != "" {
+		name += "[" + f.ServiceName + "]"
+	}
 	if f.Condition.hasMatchers() {
 		return fmt.Sprintf("%s=%s %s", f.Name, f.RawValue, f.Condition)
 	}
