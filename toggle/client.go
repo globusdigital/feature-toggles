@@ -6,7 +6,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
+	"os"
 	"path"
 	"strings"
 	"sync"
@@ -39,9 +41,12 @@ type Flag struct {
 
 // New creates a new toggle client with the given service name
 func New(name string, opts ...ClientOption) *Client {
-	o := (clientOptions{Values: []ConditionValue{
-		{Name: ServiceNameValue, Type: StringType, Value: name},
-	}}).Apply(opts)
+	o := (clientOptions{
+		values:         []ConditionValue{{Name: ServiceNameValue, Type: StringType, Value: name}},
+		updateDuration: 30 * time.Minute,
+		httpClient:     http.DefaultClient,
+		log:            log.New(os.Stderr, "", log.LstdFlags|log.Lshortfile),
+	}).Apply(opts)
 
 	return &Client{name: normalizeSerivceName(name), opts: o, store: map[string][]Flag{}}
 }
@@ -70,13 +75,13 @@ func (c *Client) getFlag(name string, o getOptions) Flag {
 
 	name = normalizeName(name)
 	for _, f := range c.store[name] {
-		if f.ServiceName != c.name && (f.ServiceName != "" || !o.Global) {
+		if f.ServiceName != c.name && (f.ServiceName != "" || !o.global) {
 			continue
 		}
 
-		values := make([]ConditionValue, len(c.opts.Values)+len(o.Values))
-		copy(values, c.opts.Values)
-		copy(values[len(c.opts.Values):], o.Values)
+		values := make([]ConditionValue, len(c.opts.values)+len(o.values))
+		copy(values, c.opts.values)
+		copy(values[len(c.opts.values):], o.values)
 		if !f.Condition.Match(values) {
 			break
 		}
@@ -151,12 +156,25 @@ func (c *Client) Connect(ctx context.Context) chan error {
 			return
 		}
 
-		ticker := time.NewTicker(UpdateDuration)
+		var ch <-chan Event
+		if c.opts.eventBus != nil {
+			var err error
+			if ch, err = c.opts.eventBus.Receive(ctx); err != nil {
+				c.opts.log.Println("Error initializing event bus receiver:", err)
+			}
+		}
+
+		ticker := time.NewTicker(c.opts.updateDuration)
 		for {
 			select {
 			case <-ctx.Done():
 				ticker.Stop()
 				return
+			case ev, open := <-ch:
+				if !open {
+					ch = nil
+				}
+				c.processEvent(ev)
 			case <-ticker.C:
 				if err := c.pollFlags(ctx, addr); err != nil {
 					errC <- err
@@ -192,7 +210,7 @@ func (c *Client) seedFlags(ctx context.Context, addr string) error {
 	}
 	r.Header.Add("Content-Type", "application/json")
 
-	resp, err := HttpClient.Do(r)
+	resp, err := c.opts.httpClient.Do(r)
 	if err != nil {
 		return fmt.Errorf("getting initial flag response: %v", err)
 	}
@@ -206,12 +224,14 @@ func (c *Client) seedFlags(ctx context.Context, addr string) error {
 }
 
 func (c *Client) pollFlags(ctx context.Context, addr string) error {
+	c.opts.log.Println("Polling for flags")
+
 	r, err := http.NewRequestWithContext(ctx, "GET", addr+"/"+path.Join("flags", c.name), nil)
 	if err != nil {
 		return fmt.Errorf("creating update poll flag request: %v", err)
 	}
 
-	resp, err := HttpClient.Do(r)
+	resp, err := c.opts.httpClient.Do(r)
 	if err != nil {
 		return fmt.Errorf("getting update poll flag response: %v", err)
 	}
@@ -224,6 +244,43 @@ func (c *Client) pollFlags(ctx context.Context, addr string) error {
 	return c.updateStore(resp.Body)
 }
 
+func (c *Client) processEvent(ev Event) {
+	c.opts.log.Printf("Processing event %s", ev.Type)
+
+	switch ev.Type {
+	case SaveEvent, DeleteEvent:
+		for i := range ev.Flags {
+			ev.Flags[i] = ev.Flags[i].Normalized()
+		}
+	default:
+		return
+	}
+
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	switch ev.Type {
+	case SaveEvent:
+		for _, f := range ev.Flags {
+			c.store[f.Name] = append(c.store[f.Name], f)
+		}
+	case DeleteEvent:
+		for _, f := range ev.Flags {
+			flags := c.store[f.Name]
+			for i, stored := range flags {
+				if stored.ServiceName == f.ServiceName {
+					if len(flags) == 1 {
+						delete(c.store, f.Name)
+					} else {
+						flags = append(flags[:i], flags[i+1:]...)
+					}
+					break
+				}
+			}
+		}
+	}
+}
+
 func (c *Client) updateStore(r io.Reader) error {
 	var flags []Flag
 	if err := json.NewDecoder(r).Decode(&flags); err != nil {
@@ -232,8 +289,7 @@ func (c *Client) updateStore(r io.Reader) error {
 
 	store := map[string][]Flag{}
 	for _, f := range flags {
-		f.Name = normalizeName(f.Name)
-		f.ServiceName = normalizeSerivceName(f.ServiceName)
+		f = f.Normalized()
 		store[f.Name] = append(store[f.Name], f)
 	}
 
@@ -268,4 +324,11 @@ func (f Flag) String() string {
 		return fmt.Sprintf("%s=%s %s", f.Name, f.RawValue, f.Condition)
 	}
 	return f.Name + "=" + f.RawValue
+}
+
+func (f Flag) Normalized() Flag {
+	f.Name = normalizeName(f.Name)
+	f.ServiceName = normalizeSerivceName(f.ServiceName)
+
+	return f
 }

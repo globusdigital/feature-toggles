@@ -10,14 +10,22 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/globusdigital/feature-toggles/messaging"
-	"github.com/globusdigital/feature-toggles/storage"
 	"github.com/globusdigital/feature-toggles/toggle"
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
 )
 
-func Handler(store storage.Store, bus messaging.Bus) http.Handler {
+type EventBus interface {
+	Send(ctx context.Context, event toggle.Event) error
+}
+
+type Store interface {
+	Get(ctx context.Context, serviceName string) ([]toggle.Flag, error)
+	Save(ctx context.Context, flags []toggle.Flag, initial bool) error
+	Delete(ctx context.Context, flags []toggle.Flag) error
+}
+
+func Handler(store Store, bus EventBus) http.Handler {
 	r := chi.NewMux()
 
 	r.Use(middleware.Logger)
@@ -70,7 +78,10 @@ func flagsCtx(next http.Handler) http.Handler {
 
 		serviceName := chi.URLParam(r, "serviceName")
 
-		for _, f := range flags {
+		for i, f := range flags {
+			f = f.Normalized()
+			flags[i] = f
+
 			if f.ServiceName != serviceName && f.ServiceName != "" {
 				http.Error(w, fmt.Sprintf("Invalid flag: %v", f), http.StatusBadRequest)
 				return
@@ -87,27 +98,27 @@ func flagsCtx(next http.Handler) http.Handler {
 	})
 }
 
-func getAllFlags(store storage.Store) http.HandlerFunc {
+func getAllFlags(store Store) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		getFlagsForServiceName(r.Context(), "", store, w)
 	}
 }
 
-func getFlags(store storage.Store) http.HandlerFunc {
+func getFlags(store Store) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		serviceName := chi.URLParam(r, "serviceName")
 		getFlagsForServiceName(r.Context(), serviceName, store, w)
 	}
 }
 
-func saveFlags(store storage.Store, bus messaging.Bus) http.HandlerFunc {
+func saveFlags(store Store, bus EventBus) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		flags := getFlagsFromCtx(ctx)
 		if saveFlagsForService(ctx, flags, false, store, w, r.Body) {
 			return
 		}
-		if err := bus.Send(ctx, messaging.Event{Type: messaging.SaveEvent, Flags: flags}); err != nil {
+		if err := bus.Send(ctx, toggle.Event{Type: toggle.SaveEvent, Flags: flags}); err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
@@ -115,7 +126,7 @@ func saveFlags(store storage.Store, bus messaging.Bus) http.HandlerFunc {
 	}
 }
 
-func saveInitialFlags(store storage.Store) http.HandlerFunc {
+func saveInitialFlags(store Store) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		flags := getFlagsFromCtx(ctx)
@@ -127,14 +138,14 @@ func saveInitialFlags(store storage.Store) http.HandlerFunc {
 	}
 }
 
-func deleteFlags(store storage.Store, bus messaging.Bus) http.HandlerFunc {
+func deleteFlags(store Store, bus EventBus) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		flags := getFlagsFromCtx(ctx)
 		if saveFlagsForService(ctx, flags, false, store, w, r.Body) {
 			return
 		}
-		if err := bus.Send(ctx, messaging.Event{Type: messaging.DeleteEvent, Flags: flags}); err != nil {
+		if err := bus.Send(ctx, toggle.Event{Type: toggle.DeleteEvent, Flags: flags}); err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
@@ -142,7 +153,7 @@ func deleteFlags(store storage.Store, bus messaging.Bus) http.HandlerFunc {
 	}
 }
 
-func getFlagsForServiceName(ctx context.Context, serviceName string, store storage.Store, w http.ResponseWriter) {
+func getFlagsForServiceName(ctx context.Context, serviceName string, store Store, w http.ResponseWriter) {
 	flags, err := store.Get(ctx, serviceName)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -158,7 +169,7 @@ func getFlagsForServiceName(ctx context.Context, serviceName string, store stora
 	_, _ = w.Write(b)
 }
 
-func saveFlagsForService(ctx context.Context, flags []toggle.Flag, initial bool, store storage.Store, w http.ResponseWriter, r io.Reader) bool {
+func saveFlagsForService(ctx context.Context, flags []toggle.Flag, initial bool, store Store, w http.ResponseWriter, r io.Reader) bool {
 	if err := store.Save(ctx, flags, initial); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return true

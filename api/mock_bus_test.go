@@ -6,9 +6,10 @@ package api
 
 import (
 	context "context"
-	messaging "github.com/globusdigital/feature-toggles/messaging"
-	gomock "github.com/golang/mock/gomock"
 	reflect "reflect"
+
+	"github.com/globusdigital/feature-toggles/toggle"
+	gomock "github.com/golang/mock/gomock"
 )
 
 // MockBus is a mock of Bus interface
@@ -35,7 +36,7 @@ func (m *MockBus) EXPECT() *MockBusMockRecorder {
 }
 
 // Send mocks base method
-func (m *MockBus) Send(arg0 context.Context, arg1 messaging.Event) error {
+func (m *MockBus) Send(arg0 context.Context, arg1 toggle.Event) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Send", arg0, arg1)
 	ret0, _ := ret[0].(error)

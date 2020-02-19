@@ -63,7 +63,7 @@ func (v *messagingKind) Set(s string) error {
 	return nil
 }
 
-func (o options) Store(ctx context.Context) (storage.Store, error) {
+func (o options) Store(ctx context.Context) (api.Store, error) {
 	switch storage.Kind(o.storage) {
 	case storage.MemKind:
 		return storage.NewMem(), nil
@@ -74,7 +74,7 @@ func (o options) Store(ctx context.Context) (storage.Store, error) {
 	return nil, errors.New("unknown storage type")
 }
 
-func (o options) Bus() (messaging.Bus, error) {
+func (o options) Bus() (api.EventBus, error) {
 	switch messaging.Kind(o.messaging) {
 	case messaging.NoopKind:
 		return messaging.NewNoop(), nil
@@ -105,6 +105,9 @@ func main() {
 
 	ctx, cancel := context.WithTimeout(mainCtx, time.Minute)
 	defer cancel()
+
+	log.Printf("Using storage type %q, messaging bus type %q", opts.storage.String(), opts.messaging.String())
+
 	store, err := opts.Store(ctx)
 	if err != nil {
 		log.Fatalf("Error initializing store: %v", err)
@@ -112,7 +115,8 @@ func main() {
 
 	bus, err := opts.Bus()
 	if err != nil {
-		log.Fatalf("Error initializing messaging bus: %v", err)
+		log.Printf("Error initializing messaging bus: %v. Proceeding without one", err)
+		bus = messaging.NewNoop()
 	}
 
 	server := &http.Server{Addr: opts.addr, Handler: api.Handler(store, bus)}

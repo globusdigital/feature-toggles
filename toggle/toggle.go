@@ -2,10 +2,7 @@ package toggle
 
 import (
 	"context"
-	"log"
-	"net/http"
 	"os"
-	"time"
 )
 
 var (
@@ -13,20 +10,14 @@ var (
 	// toggle server. It's value is the server address
 	ServerAddressFlag = "TOGGLE_SERVER"
 
-	// UpdateDuration is the update cycle duration when the toggle server is implemented
-	UpdateDuration = 30 * time.Minute
-
-	// HttpClient is the http client used to communicate with the server
-	HttpClient = http.DefaultClient
-
 	// DefaultClient is the client that is used for the global access functions
 	DefaultClient *Client
 )
 
 // Initialize creates the global DefaultClient instance, parses the local
 // environment and attempts to connect to a feature toggles server.
-func Initialize(ctx context.Context, name string) {
-	DefaultClient = New(name)
+func Initialize(ctx context.Context, name string, opts ...ClientOption) {
+	DefaultClient = New(name, opts...)
 	DefaultClient.ParseEnv(os.Environ())
 
 	go func() {
@@ -36,7 +27,7 @@ func Initialize(ctx context.Context, name string) {
 			case <-ctx.Done():
 				return
 			case err := <-c:
-				log.Println("Error listening for updates:", err)
+				DefaultClient.opts.log.Println("Error listening for updates:", err)
 			}
 		}
 	}()

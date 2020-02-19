@@ -2,7 +2,6 @@ package messaging_test
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"testing"
 
@@ -14,10 +13,10 @@ import (
 
 var natsURL = "nats://localhost:4222/"
 
-func TestNats_Send(t *testing.T) {
+func TestNats_Send_Receive(t *testing.T) {
 	type args struct {
 		ctx   context.Context
-		event messaging.Event
+		event toggle.Event
 	}
 	tests := []struct {
 		name    string
@@ -25,8 +24,8 @@ func TestNats_Send(t *testing.T) {
 		wantErr bool
 	}{
 		{name: "canceled context", args: args{ctx: canceledCtx()}, wantErr: true},
-		{name: "event", args: args{ctx: context.Background(), event: messaging.Event{
-			Type: messaging.SaveEvent,
+		{name: "event", args: args{ctx: context.Background(), event: toggle.Event{
+			Type: toggle.SaveEvent,
 			Flags: []toggle.Flag{{
 				Name: "name", ServiceName: "svc1", RawValue: "t", Value: true, Condition: toggle.Condition{
 					Op: toggle.OrOp,
@@ -48,15 +47,13 @@ func TestNats_Send(t *testing.T) {
 			a := assert.New(t)
 			a.NoError(err)
 
-			var ch chan *nats.Msg
+			var ch <-chan toggle.Event
 			if !tt.wantErr {
-				conn, err := nats.Connect(natsURL)
-				a.NoError(err)
+				ctx, cancel := context.WithCancel(context.Background())
+				defer cancel()
 
-				ch = make(chan *nats.Msg)
-				sub, err := conn.ChanSubscribe("feature-toggles", ch)
+				ch, err = b.Receive(ctx)
 				a.NoError(err)
-				defer sub.Unsubscribe()
 			}
 
 			if err := b.Send(tt.args.ctx, tt.args.event); (err != nil) != tt.wantErr {
@@ -67,11 +64,7 @@ func TestNats_Send(t *testing.T) {
 				return
 			}
 
-			msg := <-ch
-			var ev messaging.Event
-
-			err = json.Unmarshal(msg.Data, &ev)
-			a.NoError(err)
+			ev := <-ch
 
 			a.Equal(tt.args.event, ev)
 		})

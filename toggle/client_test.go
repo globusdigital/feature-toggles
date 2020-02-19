@@ -3,6 +3,7 @@ package toggle_test
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -10,6 +11,7 @@ import (
 	"time"
 
 	"github.com/globusdigital/feature-toggles/toggle"
+	gomock "github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -68,6 +70,14 @@ var (
 			},
 		}},
 	}
+
+	ev1Data = []toggle.Flag{
+		{Name: "feature.2", ServiceName: "serv1", RawValue: "0"},
+		{Name: "some.shared.feature", ServiceName: "", RawValue: "t", Value: true},
+		{Name: "feature.1", ServiceName: "serv2", RawValue: "t", Value: true},
+		{Name: "feature.3", ServiceName: "serv1", RawValue: "1", Value: true},
+		{Name: "feature.4", ServiceName: "serv2", RawValue: "some data"},
+	}
 )
 
 func TestClient_Get(t *testing.T) {
@@ -123,6 +133,8 @@ func TestClient_Connect(t *testing.T) {
 		serverErr bool
 		jsonErr   bool
 		pollErr   bool
+		ev        []toggle.Event
+		evErr     bool
 		update    []toggle.Flag
 		opts      []toggle.Option
 		wantErr   bool
@@ -138,6 +150,15 @@ func TestClient_Connect(t *testing.T) {
 		{name: "conditional 1 - serv2", cname: "serv2", ctx: canceledCtx(time.Second), seed: seed1, enable: true, update: cond1},
 		{name: "conditional 2", cname: "serv1", ctx: canceledCtx(time.Second), seed: seed1, enable: true, update: cond2, want: []toggle.Flag{{Name: "feature.1", ServiceName: "serv1"}}},
 		{name: "conditional 2 - val 20", cname: "serv1", ctx: canceledCtx(time.Second), seed: seed1, enable: true, update: cond2, opts: []toggle.Option{toggle.ForInt("userID", 20)}, want: cond2},
+		{name: "event err", cname: "serv1", ctx: canceledCtx(50 * time.Millisecond), seed: seed1, enable: true, evErr: true, want: initialData},
+		{name: "event 1", cname: "serv1", ctx: canceledCtx(50 * time.Millisecond), seed: seed1, enable: true, ev: []toggle.Event{
+			{Type: toggle.SaveEvent, Flags: []toggle.Flag{
+				{Name: "feature.1", ServiceName: "serv2", RawValue: "t", Value: true},
+			}},
+			{Type: toggle.DeleteEvent, Flags: initialData[0:1]},
+			{Type: toggle.DeleteEvent, Flags: initialData[2:4]},
+			{Type: toggle.SaveEvent, Flags: ev1Data[3:]},
+		}, want: ev1Data},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -176,10 +197,38 @@ func TestClient_Connect(t *testing.T) {
 				tt.seed = append(tt.seed, "FEATURE__GLOBAL__"+toggle.ServerAddressFlag+"="+ts.URL)
 			}
 
-			c := toggle.New(tt.cname, tt.copts...)
+			copts := tt.copts
+			if len(tt.ev) > 0 {
+				ctrl := gomock.NewController(t)
+				defer ctrl.Finish()
+
+				bus := NewMockEventBus(ctrl)
+
+				var ch chan toggle.Event
+				if len(tt.ev) > 0 {
+					ch = make(chan toggle.Event)
+
+					go func() {
+						defer close(ch)
+						for _, ev := range tt.ev {
+							ch <- ev
+						}
+					}()
+				}
+				var err error
+				if tt.evErr {
+					err = errors.New("ev")
+				}
+				bus.EXPECT().Receive(gomock.Any()).AnyTimes().Return(ch, err)
+
+				copts = append(copts, toggle.WithEventBus(bus))
+			}
+			if len(copts) == 0 && !tt.evErr {
+				copts = append(copts, toggle.WithPollingUpdateDuration(100*time.Millisecond))
+			}
+			c := toggle.New(tt.cname, copts...)
 			c.ParseEnv(tt.seed)
 
-			toggle.UpdateDuration = 100 * time.Millisecond
 			ctx := tt.ctx()
 			got := c.Connect(ctx)
 
