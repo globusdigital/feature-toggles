@@ -25,6 +25,8 @@ type options struct {
 
 	messaging messagingKind
 	nats      string
+
+	apiPath string
 }
 
 type storageKind storage.Kind
@@ -119,9 +121,9 @@ func main() {
 		bus = messaging.NewNoop()
 	}
 
-	server := &http.Server{Addr: opts.addr, Handler: api.Handler(store, bus)}
+	server := &http.Server{Addr: opts.addr, Handler: api.Handler(opts.apiPath, store, bus)}
 	go func() {
-		log.Printf("Starting server on %s", opts.addr)
+		log.Printf("Starting server on %s%s", opts.addr, opts.apiPath)
 		if err := server.ListenAndServe(); err != nil {
 			log.Fatalf("Error starting http server: %v", err)
 		}
@@ -144,4 +146,5 @@ func init() {
 	flag.StringVar(&opts.mongodb, "mongodb", "mongodb://127.0.0.1:27017/featuretoggles", "mongodb address")
 	flag.Var(&opts.messaging, "messaging", `messaging type. Choices: nats, noop (default "noop")`)
 	flag.StringVar(&opts.nats, "nats", "nats://127.0.0.1:4222", "nats address")
+	flag.StringVar(&opts.apiPath, "api-path", "/flags", "the api path")
 }

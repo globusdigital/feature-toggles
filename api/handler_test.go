@@ -81,7 +81,7 @@ func TestHandler(t *testing.T) {
 
 			w, r := httptest.NewRecorder(), httptest.NewRequest(tt.method, tt.url, strings.NewReader(tt.body))
 
-			Handler(store, bus).ServeHTTP(w, r)
+			Handler("/flags", store, bus).ServeHTTP(w, r)
 
 			a := assert.New(t)
 			a.Equal(tt.wantCode, w.Code, w.Body.String())

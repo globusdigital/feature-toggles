@@ -26,7 +26,10 @@ func Initialize(ctx context.Context, name string, opts ...ClientOption) {
 			select {
 			case <-ctx.Done():
 				return
-			case err := <-c:
+			case err, open := <-c:
+				if !open {
+					return
+				}
 				DefaultClient.opts.log.Println("Error listening for updates:", err)
 			}
 		}

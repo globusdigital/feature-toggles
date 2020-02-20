@@ -46,6 +46,7 @@ func New(name string, opts ...ClientOption) *Client {
 		updateDuration: 30 * time.Minute,
 		httpClient:     http.DefaultClient,
 		log:            log.New(os.Stderr, "", log.LstdFlags|log.Lshortfile),
+		path:           "/flags",
 	}).Apply(opts)
 
 	return &Client{name: normalizeSerivceName(name), opts: o, store: map[string][]Flag{}}
@@ -205,7 +206,7 @@ func (c *Client) seedFlags(ctx context.Context, addr string) error {
 		return fmt.Errorf("encoding initial flag data: %v", err)
 	}
 
-	r, err := http.NewRequestWithContext(ctx, "POST", addr+"/"+path.Join("flags", c.name, "initial"), bytes.NewReader(b))
+	r, err := http.NewRequestWithContext(ctx, "POST", addr+path.Join(c.opts.path, c.name, "initial"), bytes.NewReader(b))
 	if err != nil {
 		return fmt.Errorf("creating initial flag request: %v", err)
 	}
@@ -227,7 +228,7 @@ func (c *Client) seedFlags(ctx context.Context, addr string) error {
 func (c *Client) pollFlags(ctx context.Context, addr string) error {
 	c.opts.log.Println("Polling for flags")
 
-	r, err := http.NewRequestWithContext(ctx, "GET", addr+"/"+path.Join("flags", c.name), nil)
+	r, err := http.NewRequestWithContext(ctx, "GET", addr+path.Join(c.opts.path, c.name), nil)
 	if err != nil {
 		return fmt.Errorf("creating update poll flag request: %v", err)
 	}
@@ -246,7 +247,7 @@ func (c *Client) pollFlags(ctx context.Context, addr string) error {
 }
 
 func (c *Client) processEvent(ev Event) {
-	c.opts.log.Printf("Processing event %s", ev.Type)
+	c.opts.log.Printf("Processing event %q with flags: %s", ev.Type, ev.Flags)
 
 	switch ev.Type {
 	case SaveEvent, DeleteEvent:
@@ -263,7 +264,20 @@ func (c *Client) processEvent(ev Event) {
 	switch ev.Type {
 	case SaveEvent:
 		for _, f := range ev.Flags {
-			c.store[f.Name] = append(c.store[f.Name], f)
+			flags := c.store[f.Name]
+
+			var found bool
+			for i, stored := range flags {
+				if stored.ServiceName == f.ServiceName {
+					flags[i] = f
+					found = true
+					break
+				}
+			}
+
+			if !found {
+				c.store[f.Name] = append(c.store[f.Name], f)
+			}
 		}
 	case DeleteEvent:
 		for _, f := range ev.Flags {
@@ -322,9 +336,9 @@ func (f Flag) String() string {
 		name += "[" + f.ServiceName + "]"
 	}
 	if f.Condition.hasMatchers() {
-		return fmt.Sprintf("%s=%s %s", f.Name, f.RawValue, f.Condition)
+		return fmt.Sprintf("%s=%s %s", name, f.RawValue, f.Condition)
 	}
-	return f.Name + "=" + f.RawValue
+	return name + "=" + f.RawValue
 }
 
 func (f Flag) Normalized() Flag {

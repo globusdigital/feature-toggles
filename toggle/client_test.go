@@ -78,6 +78,14 @@ var (
 		{Name: "feature.3", ServiceName: "serv1", RawValue: "1", Value: true},
 		{Name: "feature.4", ServiceName: "serv2", RawValue: "some data"},
 	}
+
+	ev2Data = []toggle.Flag{
+		{Name: "feature.2", ServiceName: "serv1", RawValue: "0"},
+		{Name: "some.shared.feature", ServiceName: "", RawValue: "t", Value: true},
+		{Name: "feature.1", ServiceName: "serv2", RawValue: "t", Value: true},
+		{Name: "feature.3", ServiceName: "serv1", RawValue: "n"},
+		{Name: "feature.4", ServiceName: "serv2", RawValue: "some data"},
+	}
 )
 
 func TestClient_Get(t *testing.T) {
@@ -133,6 +141,7 @@ func TestClient_Connect(t *testing.T) {
 		serverErr bool
 		jsonErr   bool
 		pollErr   bool
+		apiPath   string
 		ev        []toggle.Event
 		evErr     bool
 		update    []toggle.Flag
@@ -159,6 +168,15 @@ func TestClient_Connect(t *testing.T) {
 			{Type: toggle.DeleteEvent, Flags: initialData[2:4]},
 			{Type: toggle.SaveEvent, Flags: ev1Data[3:]},
 		}, want: ev1Data},
+		{name: "event 1 - path 2", cname: "serv1", ctx: canceledCtx(50 * time.Millisecond), seed: seed1, enable: true, ev: []toggle.Event{
+			{Type: toggle.SaveEvent, Flags: []toggle.Flag{
+				{Name: "feature.1", ServiceName: "serv2", RawValue: "t", Value: true},
+			}},
+			{Type: toggle.DeleteEvent, Flags: initialData[0:1]},
+			{Type: toggle.DeleteEvent, Flags: initialData[2:4]},
+			{Type: toggle.SaveEvent, Flags: ev1Data[3:]},
+			{Type: toggle.SaveEvent, Flags: ev2Data[3:]},
+		}, apiPath: "/service/featuretoggles", copts: []toggle.ClientOption{toggle.WithAPIPath("/service/featuretoggles")}, want: ev2Data},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -169,7 +187,10 @@ func TestClient_Connect(t *testing.T) {
 					return
 				}
 
-				if !strings.Contains(r.URL.Path, "/flags") {
+				if tt.apiPath == "" {
+					tt.apiPath = "/flags"
+				}
+				if !strings.Contains(r.URL.Path, tt.apiPath) {
 					t.Fatalf("Invalid request path %s", r.URL.Path)
 				}
 

@@ -25,13 +25,13 @@ type Store interface {
 	Delete(ctx context.Context, flags []toggle.Flag) error
 }
 
-func Handler(store Store, bus EventBus) http.Handler {
+func Handler(path string, store Store, bus EventBus) http.Handler {
 	r := chi.NewMux()
 
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
 
-	r.Route("/flags", func(r chi.Router) {
+	r.Route(path, func(r chi.Router) {
 		r.With(middleware.Timeout(time.Second*2)).Get("/", getAllFlags(store))
 
 		r.Route("/{serviceName}", func(r chi.Router) {
