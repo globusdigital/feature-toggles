@@ -147,6 +147,7 @@ func (c *Client) Connect(ctx context.Context) chan error {
 	errC := make(chan error)
 
 	go func() {
+		defer close(errC)
 		if err := c.seedFlags(ctx, addr); err != nil {
 			errC <- err
 			return
