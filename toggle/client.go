@@ -8,6 +8,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"net/url"
 	"os"
 	"path"
 	"strings"
@@ -219,7 +220,7 @@ func (c *Client) seedFlags(ctx context.Context, addr string) error {
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("invalid status code: %d (%s)", resp.StatusCode, resp.Status)
+		return fmt.Errorf("invalid status code for %s: %d (%s)", cleanupURL(r.URL), resp.StatusCode, resp.Status)
 	}
 
 	return c.updateStore(resp.Body)
@@ -240,7 +241,7 @@ func (c *Client) pollFlags(ctx context.Context, addr string) error {
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("invalid status code: %d (%s)", resp.StatusCode, resp.Status)
+		return fmt.Errorf("invalid status code for %s: %d (%s)", cleanupURL(r.URL), resp.StatusCode, resp.Status)
 	}
 
 	return c.updateStore(resp.Body)
@@ -346,4 +347,9 @@ func (f Flag) Normalized() Flag {
 	f.ServiceName = normalizeSerivceName(f.ServiceName)
 
 	return f
+}
+
+func cleanupURL(u *url.URL) string {
+	u.User = url.User(u.User.Username())
+	return u.String()
 }
