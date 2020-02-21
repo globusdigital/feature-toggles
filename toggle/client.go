@@ -273,6 +273,7 @@ func (c *Client) processEvent(ev Event) {
 			ev.Flags[i] = f
 			i++
 		}
+		ev.Flags = ev.Flags[:i]
 	default:
 		return
 	}
