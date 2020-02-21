@@ -167,7 +167,7 @@ func TestClient_Connect(t *testing.T) {
 			{Type: toggle.DeleteEvent, Flags: initialData[0:1]},
 			{Type: toggle.DeleteEvent, Flags: initialData[2:4]},
 			{Type: toggle.SaveEvent, Flags: ev1Data[3:]},
-		}, want: ev1Data},
+		}, want: filterFlags("serv1", ev1Data)},
 		{name: "event 1 - path 2", cname: "serv1", ctx: canceledCtx(50 * time.Millisecond), seed: seed1, enable: true, ev: []toggle.Event{
 			{Type: toggle.SaveEvent, Flags: []toggle.Flag{
 				{Name: "feature.1", ServiceName: "serv2", RawValue: "t", Value: true},
@@ -176,7 +176,7 @@ func TestClient_Connect(t *testing.T) {
 			{Type: toggle.DeleteEvent, Flags: initialData[2:4]},
 			{Type: toggle.SaveEvent, Flags: ev1Data[3:]},
 			{Type: toggle.SaveEvent, Flags: ev2Data[3:]},
-		}, apiPath: "/service/featuretoggles", copts: []toggle.ClientOption{toggle.WithAPIPath("/service/featuretoggles")}, want: ev2Data},
+		}, apiPath: "/service/featuretoggles", copts: []toggle.ClientOption{toggle.WithAPIPath("/service/featuretoggles")}, want: filterFlags("serv1", ev2Data)},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -289,4 +289,16 @@ func canceledCtx(d time.Duration) func() context.Context {
 
 		return ctx
 	}
+}
+
+func filterFlags(name string, flags []toggle.Flag) []toggle.Flag {
+	res := make([]toggle.Flag, 0, len(flags))
+
+	for _, f := range flags {
+		if f.ServiceName == name || f.ServiceName == "" {
+			res = append(res, f)
+		}
+	}
+
+	return res
 }

@@ -42,6 +42,8 @@ type Flag struct {
 
 // New creates a new toggle client with the given service name
 func New(name string, opts ...ClientOption) *Client {
+	name = normalizeSerivceName(name)
+
 	o := (clientOptions{
 		values:         []ConditionValue{{Name: ServiceNameValue, Type: StringType, Value: name}},
 		updateDuration: 30 * time.Minute,
@@ -50,7 +52,7 @@ func New(name string, opts ...ClientOption) *Client {
 		path:           "/flags",
 	}).Apply(opts)
 
-	return &Client{name: normalizeSerivceName(name), opts: o, store: map[string][]Flag{}}
+	return &Client{name: name, opts: o, store: map[string][]Flag{}}
 }
 
 // Get returns the boolean flag value
@@ -126,10 +128,15 @@ func (c *Client) ParseEnv(env []string) {
 		}
 
 		key = normalizeName(key)
+		serviceName = normalizeSerivceName(serviceName)
+
+		if serviceName != c.name && serviceName != "" {
+			continue
+		}
 
 		flags[key] = append(flags[key], Flag{
 			Name:        key,
-			ServiceName: normalizeSerivceName(serviceName),
+			ServiceName: serviceName,
 			RawValue:    rawValue,
 			Value:       value,
 		})
@@ -191,6 +198,8 @@ func (c *Client) Connect(ctx context.Context) chan error {
 }
 
 func (c *Client) seedFlags(ctx context.Context, addr string) error {
+	log.Println("Sending initial environment flags to server")
+
 	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
 
@@ -252,8 +261,17 @@ func (c *Client) processEvent(ev Event) {
 
 	switch ev.Type {
 	case SaveEvent, DeleteEvent:
-		for i := range ev.Flags {
-			ev.Flags[i] = ev.Flags[i].Normalized()
+		var i int
+		for _, f := range ev.Flags {
+			f = f.Normalized()
+
+			// Filter out unrelated flags
+			if f.ServiceName != c.name && f.ServiceName != "" {
+				continue
+			}
+
+			ev.Flags[i] = f
+			i++
 		}
 	default:
 		return
