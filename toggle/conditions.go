@@ -13,6 +13,7 @@ type FieldOp int
 const (
 	IntType    ValueType = iota // int
 	FloatType                   // float
+	BoolType                    // bool
 	StringType                  // string
 )
 
@@ -84,6 +85,10 @@ func (v ConditionValue) Validate() error {
 	case FloatType:
 		if _, ok := v.Value.(float64); !ok {
 			return fmt.Errorf("invalid float64 type for value %T", v.Value)
+		}
+	case BoolType:
+		if _, ok := v.Value.(bool); !ok {
+			return fmt.Errorf("invalid bool type for value %T", v.Value)
 		}
 	case StringType:
 		if _, ok := v.Value.(string); !ok {
@@ -225,6 +230,8 @@ func (f ConditionField) lt(v ConditionValue) bool {
 		return f.Value.(int64) < v.Value.(int64)
 	case FloatType:
 		return f.Value.(float64) < v.Value.(float64)
+	case BoolType:
+		return false
 	case StringType:
 		return f.Value.(string) < v.Value.(string)
 	}
@@ -237,6 +244,8 @@ func (f ConditionField) gt(v ConditionValue) bool {
 		return f.Value.(int64) > v.Value.(int64)
 	case FloatType:
 		return f.Value.(float64) > v.Value.(float64)
+	case BoolType:
+		return false
 	case StringType:
 		return f.Value.(string) > v.Value.(string)
 	}

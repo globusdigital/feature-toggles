@@ -10,12 +10,13 @@ func _() {
 	var x [1]struct{}
 	_ = x[IntType-0]
 	_ = x[FloatType-1]
-	_ = x[StringType-2]
+	_ = x[BoolType-2]
+	_ = x[StringType-3]
 }
 
-const _ValueType_name = "intfloatstring"
+const _ValueType_name = "intfloatboolstring"
 
-var _ValueType_index = [...]uint8{0, 3, 8, 14}
+var _ValueType_index = [...]uint8{0, 3, 8, 12, 18}
 
 func (i ValueType) String() string {
 	if i < 0 || i >= ValueType(len(_ValueType_index)-1) {

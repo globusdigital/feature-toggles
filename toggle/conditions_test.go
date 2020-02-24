@@ -73,16 +73,28 @@ func TestCondition_Match(t *testing.T) {
 			{Name: "field", Type: toggle.FloatType, Value: float64(2)},
 		}},
 
-		{name: "10 < string - true", c: toggle.Condition{Fields: []toggle.ConditionField{
-			{ConditionValue: toggle.ConditionValue{Name: "field", Type: toggle.StringType, Value: string(10)}, Op: toggle.LtOp},
+		{name: "10 < bool - true", c: toggle.Condition{Fields: []toggle.ConditionField{
+			{ConditionValue: toggle.ConditionValue{Name: "field", Type: toggle.BoolType, Value: true}, Op: toggle.LtOp},
 		}}, values: []toggle.ConditionValue{
-			{Name: "field", Type: toggle.StringType, Value: string(20)},
+			{Name: "field", Type: toggle.BoolType, Value: true},
+		}},
+
+		{name: "10 < bool", c: toggle.Condition{Fields: []toggle.ConditionField{
+			{ConditionValue: toggle.ConditionValue{Name: "field", Type: toggle.BoolType, Value: true}, Op: toggle.LtOp},
+		}}, values: []toggle.ConditionValue{
+			{Name: "field", Type: toggle.BoolType, Value: false},
+		}},
+
+		{name: "10 < string - true", c: toggle.Condition{Fields: []toggle.ConditionField{
+			{ConditionValue: toggle.ConditionValue{Name: "field", Type: toggle.StringType, Value: "10"}, Op: toggle.LtOp},
+		}}, values: []toggle.ConditionValue{
+			{Name: "field", Type: toggle.StringType, Value: "20"},
 		}, want: true},
 
 		{name: "10 < string", c: toggle.Condition{Fields: []toggle.ConditionField{
-			{ConditionValue: toggle.ConditionValue{Name: "field", Type: toggle.StringType, Value: string(10)}, Op: toggle.LtOp},
+			{ConditionValue: toggle.ConditionValue{Name: "field", Type: toggle.StringType, Value: "10"}, Op: toggle.LtOp},
 		}}, values: []toggle.ConditionValue{
-			{Name: "field", Type: toggle.StringType, Value: string(2)},
+			{Name: "field", Type: toggle.StringType, Value: "1"},
 		}},
 
 		{name: "10 > int - true", c: toggle.Condition{Fields: []toggle.ConditionField{
@@ -95,6 +107,18 @@ func TestCondition_Match(t *testing.T) {
 			{ConditionValue: toggle.ConditionValue{Name: "field", Type: toggle.IntType, Value: int64(10)}, Op: toggle.GtOp},
 		}}, values: []toggle.ConditionValue{
 			{Name: "field", Type: toggle.IntType, Value: int64(20)},
+		}},
+
+		{name: "10 > bool - true", c: toggle.Condition{Fields: []toggle.ConditionField{
+			{ConditionValue: toggle.ConditionValue{Name: "field", Type: toggle.BoolType, Value: true}, Op: toggle.GtOp},
+		}}, values: []toggle.ConditionValue{
+			{Name: "field", Type: toggle.BoolType, Value: true},
+		}},
+
+		{name: "10 > bool", c: toggle.Condition{Fields: []toggle.ConditionField{
+			{ConditionValue: toggle.ConditionValue{Name: "field", Type: toggle.BoolType, Value: true}, Op: toggle.GtOp},
+		}}, values: []toggle.ConditionValue{
+			{Name: "field", Type: toggle.BoolType, Value: false},
 		}},
 
 		{name: "10 > float64 - true", c: toggle.Condition{Fields: []toggle.ConditionField{
@@ -110,15 +134,15 @@ func TestCondition_Match(t *testing.T) {
 		}},
 
 		{name: "10 > string - true", c: toggle.Condition{Fields: []toggle.ConditionField{
-			{ConditionValue: toggle.ConditionValue{Name: "field", Type: toggle.StringType, Value: string(10)}, Op: toggle.GtOp},
+			{ConditionValue: toggle.ConditionValue{Name: "field", Type: toggle.StringType, Value: "10"}, Op: toggle.GtOp},
 		}}, values: []toggle.ConditionValue{
-			{Name: "field", Type: toggle.StringType, Value: string(2)},
+			{Name: "field", Type: toggle.StringType, Value: "1"},
 		}, want: true},
 
 		{name: "10 > string", c: toggle.Condition{Fields: []toggle.ConditionField{
-			{ConditionValue: toggle.ConditionValue{Name: "field", Type: toggle.StringType, Value: string(10)}, Op: toggle.GtOp},
+			{ConditionValue: toggle.ConditionValue{Name: "field", Type: toggle.StringType, Value: "10"}, Op: toggle.GtOp},
 		}}, values: []toggle.ConditionValue{
-			{Name: "field", Type: toggle.StringType, Value: string(20)},
+			{Name: "field", Type: toggle.StringType, Value: "20"},
 		}},
 
 		{name: "10 != int - true", c: toggle.Condition{Fields: []toggle.ConditionField{
@@ -131,6 +155,18 @@ func TestCondition_Match(t *testing.T) {
 			{ConditionValue: toggle.ConditionValue{Name: "field", Type: toggle.IntType, Value: int64(10)}, Op: toggle.NeOp},
 		}}, values: []toggle.ConditionValue{
 			{Name: "field", Type: toggle.IntType, Value: int64(10)},
+		}},
+
+		{name: "10 != bool - true", c: toggle.Condition{Fields: []toggle.ConditionField{
+			{ConditionValue: toggle.ConditionValue{Name: "field", Type: toggle.BoolType, Value: true}, Op: toggle.NeOp},
+		}}, values: []toggle.ConditionValue{
+			{Name: "field", Type: toggle.BoolType, Value: false},
+		}, want: true},
+
+		{name: "10 != bool", c: toggle.Condition{Fields: []toggle.ConditionField{
+			{ConditionValue: toggle.ConditionValue{Name: "field", Type: toggle.BoolType, Value: true}, Op: toggle.NeOp},
+		}}, values: []toggle.ConditionValue{
+			{Name: "field", Type: toggle.BoolType, Value: true},
 		}},
 
 		{name: "10 != float64 - true", c: toggle.Condition{Fields: []toggle.ConditionField{
@@ -146,15 +182,15 @@ func TestCondition_Match(t *testing.T) {
 		}},
 
 		{name: "10 != string - true", c: toggle.Condition{Fields: []toggle.ConditionField{
-			{ConditionValue: toggle.ConditionValue{Name: "field", Type: toggle.StringType, Value: string(10)}, Op: toggle.NeOp},
+			{ConditionValue: toggle.ConditionValue{Name: "field", Type: toggle.StringType, Value: "10"}, Op: toggle.NeOp},
 		}}, values: []toggle.ConditionValue{
-			{Name: "field", Type: toggle.StringType, Value: string(2)},
+			{Name: "field", Type: toggle.StringType, Value: "2"},
 		}, want: true},
 
 		{name: "10 != string", c: toggle.Condition{Fields: []toggle.ConditionField{
-			{ConditionValue: toggle.ConditionValue{Name: "field", Type: toggle.StringType, Value: string(10)}, Op: toggle.NeOp},
+			{ConditionValue: toggle.ConditionValue{Name: "field", Type: toggle.StringType, Value: "10"}, Op: toggle.NeOp},
 		}}, values: []toggle.ConditionValue{
-			{Name: "field", Type: toggle.StringType, Value: string(10)},
+			{Name: "field", Type: toggle.StringType, Value: "10"},
 		}},
 	}
 	for _, tt := range tests {
@@ -183,6 +219,8 @@ func TestConditionValue_Validate(t *testing.T) {
 		{name: "valid int type", fields: fields{Type: toggle.IntType, Value: int64(43)}},
 		{name: "invalid float type", fields: fields{Type: toggle.FloatType, Value: 43}, wantErr: true},
 		{name: "valid float type", fields: fields{Type: toggle.FloatType, Value: 43.5}},
+		{name: "invalid bool type", fields: fields{Type: toggle.BoolType, Value: 4.13}, wantErr: true},
+		{name: "valid bool type", fields: fields{Type: toggle.BoolType, Value: true}},
 		{name: "invalid string type", fields: fields{Type: toggle.StringType, Value: 43}, wantErr: true},
 		{name: "valid string type", fields: fields{Type: toggle.StringType, Value: "43.5"}},
 	}

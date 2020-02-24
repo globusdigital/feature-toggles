@@ -50,14 +50,21 @@ func ForInt(name string, value int64) Option {
 	}
 }
 
-// ForInt sets a float value when querying a flag constraint
+// ForFloat sets a float value when querying a flag constraint
 func ForFloat(name string, value float64) Option {
 	return func(o *getOptions) {
 		o.values = append(o.values, ConditionValue{Name: name, Value: value, Type: FloatType})
 	}
 }
 
-// ForInt sets a string value when querying a flag constraint
+// ForBool sets a boolean value when querying a flag constraint
+func ForBool(name string, value bool) Option {
+	return func(o *getOptions) {
+		o.values = append(o.values, ConditionValue{Name: name, Value: value, Type: BoolType})
+	}
+}
+
+// ForString sets a string value when querying a flag constraint
 func ForString(name string, value string) Option {
 	return func(o *getOptions) {
 		o.values = append(o.values, ConditionValue{Name: name, Value: value, Type: StringType})
@@ -81,6 +88,8 @@ func For(values ...ConditionValue) ClientOption {
 			values[i].Type = IntType
 		case float64:
 			values[i].Type = FloatType
+		case bool:
+			values[i].Type = BoolType
 		case string:
 			values[i].Type = StringType
 		default:
