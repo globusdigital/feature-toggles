@@ -76,6 +76,7 @@ func TestHandler(t *testing.T) {
 			store, bus := NewMockStore(ctrl), NewMockBus(ctrl)
 			store.EXPECT().Get(gomock.Any(), gomock.Eq(tt.serviceName)).AnyTimes().Return(tt.flags, tt.flagsErr)
 			store.EXPECT().Save(gomock.Any(), gomock.Any(), gomock.Eq(tt.saveInitial)).AnyTimes().Return(tt.flagsSaveErr)
+			store.EXPECT().Delete(gomock.Any(), gomock.Any()).AnyTimes().Return(tt.flagsSaveErr)
 
 			bus.EXPECT().Send(gomock.Any(), gomock.Any()).AnyTimes().Return(tt.sendErr)
 

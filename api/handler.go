@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
 	"io/ioutil"
 	"net/http"
 	"time"
@@ -115,7 +114,7 @@ func saveFlags(store Store, bus EventBus) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		flags := getFlagsFromCtx(ctx)
-		if saveFlagsForService(ctx, flags, false, store, w, r.Body) {
+		if saveFlagsForService(ctx, flags, false, store, w) {
 			return
 		}
 		if err := bus.Send(ctx, toggle.Event{Type: toggle.SaveEvent, Flags: flags}); err != nil {
@@ -130,7 +129,7 @@ func saveInitialFlags(store Store) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		flags := getFlagsFromCtx(ctx)
-		if saveFlagsForService(ctx, flags, true, store, w, r.Body) {
+		if saveFlagsForService(ctx, flags, true, store, w) {
 			return
 		}
 		serviceName := chi.URLParam(r, "serviceName")
@@ -142,7 +141,7 @@ func deleteFlags(store Store, bus EventBus) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		flags := getFlagsFromCtx(ctx)
-		if saveFlagsForService(ctx, flags, false, store, w, r.Body) {
+		if deleteFlagsForService(ctx, flags, store, w) {
 			return
 		}
 		if err := bus.Send(ctx, toggle.Event{Type: toggle.DeleteEvent, Flags: flags}); err != nil {
@@ -169,8 +168,18 @@ func getFlagsForServiceName(ctx context.Context, serviceName string, store Store
 	_, _ = w.Write(b)
 }
 
-func saveFlagsForService(ctx context.Context, flags []toggle.Flag, initial bool, store Store, w http.ResponseWriter, r io.Reader) bool {
+func saveFlagsForService(ctx context.Context, flags []toggle.Flag, initial bool, store Store, w http.ResponseWriter) bool {
 	if err := store.Save(ctx, flags, initial); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return true
+	}
+
+	return false
+}
+
+func deleteFlagsForService(ctx context.Context, flags []toggle.Flag, store Store, w http.ResponseWriter) bool {
+
+	if err := store.Delete(ctx, flags); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return true
 	}
