@@ -192,6 +192,14 @@ func TestCondition_Match(t *testing.T) {
 		}}, values: []toggle.ConditionValue{
 			{Name: "field", Type: toggle.StringType, Value: "10"},
 		}},
+
+		{name: "real example 1", c: toggle.Condition{Fields: []toggle.ConditionField{
+			{ConditionValue: toggle.ConditionValue{Name: "workspace", Type: 3, Value: "stage"}},
+		}}, values: []toggle.ConditionValue{
+			{Name: "serviceName", Type: 3, Value: "serv1"},
+			{Name: "site", Type: 3, Value: "globus"},
+			{Name: "workspace", Type: 3, Value: "stage"},
+		}, want: true},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
