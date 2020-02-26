@@ -49,24 +49,25 @@ func (b Nats) Send(ctx context.Context, event toggle.Event) error {
 	return nil
 }
 
-func (s Nats) Receive(ctx context.Context) (<-chan toggle.Event, error) {
+func (s Nats) Receiver(ctx context.Context) <-chan toggle.Event {
 	ch := make(chan toggle.Event)
-	sub, err := s.Conn.Subscribe(NatsSubject, func(ev toggle.Event) {
-		ch <- ev
-	})
-
-	if err != nil {
-		return nil, fmt.Errorf("subscribing to nats subject: %v", err)
-	}
-
 	go func() {
 		defer close(ch)
+
+		sub, err := s.Conn.Subscribe(NatsSubject, func(ev toggle.Event) {
+			ch <- ev
+		})
+		if err != nil {
+			ch <- toggle.Event{Type: toggle.ErrorEvent, Error: "subscribing to nats subject: " + err.Error()}
+			return
+		}
 		defer sub.Unsubscribe()
+
 		select {
 		case <-ctx.Done():
 			return
 		}
 	}()
 
-	return ch, nil
+	return ch
 }
