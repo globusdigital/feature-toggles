@@ -23,6 +23,6 @@ func (s Noop) Send(ctx context.Context, event toggle.Event) error {
 	return ctx.Err()
 }
 
-func (s Noop) Receive(ctx context.Context) (<-chan toggle.Event, error) {
-	return nil, nil
+func (s Noop) Receiver(ctx context.Context) <-chan toggle.Event {
+	return nil
 }

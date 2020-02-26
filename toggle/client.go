@@ -168,10 +168,7 @@ func (c *Client) Connect(ctx context.Context) chan error {
 
 		var ch <-chan Event
 		if c.opts.eventBus != nil {
-			var err error
-			if ch, err = c.opts.eventBus.Receive(ctx); err != nil {
-				c.opts.log.Println("Error initializing event bus receiver:", err)
-			}
+			ch = c.opts.eventBus.Receiver(ctx)
 		}
 
 		ticker := time.NewTicker(c.opts.updateDuration)
@@ -260,6 +257,9 @@ func (c *Client) processEvent(ev Event) {
 	c.opts.log.Printf("Processing event %q with flags: %s", ev.Type, ev.Flags)
 
 	switch ev.Type {
+	case ErrorEvent:
+		c.opts.log.Println("Received error event:", ev.Error)
+		return
 	case SaveEvent, DeleteEvent:
 		var i int
 		for _, f := range ev.Flags {

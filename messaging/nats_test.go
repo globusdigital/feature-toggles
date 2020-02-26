@@ -52,8 +52,7 @@ func TestNats_Send_Receive(t *testing.T) {
 				ctx, cancel := context.WithCancel(context.Background())
 				defer cancel()
 
-				ch, err = b.Receive(ctx)
-				a.NoError(err)
+				ch = b.Receiver(ctx)
 			}
 
 			if err := b.Send(tt.args.ctx, tt.args.event); (err != nil) != tt.wantErr {

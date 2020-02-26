@@ -34,17 +34,16 @@ func (m *MockEventBus) EXPECT() *MockEventBusMockRecorder {
 	return m.recorder
 }
 
-// Receive mocks base method
-func (m *MockEventBus) Receive(arg0 context.Context) (<-chan toggle.Event, error) {
+// Receiver mocks base method
+func (m *MockEventBus) Receiver(arg0 context.Context) <-chan toggle.Event {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Receive", arg0)
+	ret := m.ctrl.Call(m, "Receiver", arg0)
 	ret0, _ := ret[0].(<-chan toggle.Event)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
+	return ret0
 }
 
-// Receive indicates an expected call of Receive
-func (mr *MockEventBusMockRecorder) Receive(arg0 interface{}) *gomock.Call {
+// Receiver indicates an expected call of Receiver
+func (mr *MockEventBusMockRecorder) Receiver(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Receive", reflect.TypeOf((*MockEventBus)(nil).Receive), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Receiver", reflect.TypeOf((*MockEventBus)(nil).Receiver), arg0)
 }
