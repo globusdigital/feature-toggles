@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"reflect"
 	"strings"
 	"testing"
 	"time"
@@ -293,4 +294,31 @@ func filterFlags(name string, flags []toggle.Flag) []toggle.Flag {
 	}
 
 	return res
+}
+
+func TestClient_MarshalJSON(t *testing.T) {
+	tests := []struct {
+		name    string
+		cname   string
+		seed    []string
+		want    []byte
+		wantErr bool
+	}{
+		{name: "seed1", cname: "serv1", seed: seed1, want: []byte(`{"opts":{"path":"/flags","values":[{"name":"serviceName","type":3,"value":"serv1"}]},"flags":[{"name":"feature.1","serviceName":"serv1","rawValue":"t","value":true,"condition":{}},{"name":"feature.2","serviceName":"serv1","rawValue":"f","condition":{}},{"name":"feature.3","serviceName":"serv1","rawValue":"yes","value":true,"condition":{}},{"name":"feature.4","serviceName":"serv1","rawValue":"1","value":true,"condition":{}},{"name":"some.shared.feature","rawValue":"y","value":true,"condition":{}}]}`)},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			c := toggle.New(tt.cname)
+			c.ParseEnv(tt.seed)
+
+			got, err := c.MarshalJSON()
+			if (err != nil) != tt.wantErr {
+				t.Errorf("Client.MarshalJSON() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("Client.MarshalJSON() = %v, want %v", string(got), string(tt.want))
+			}
+		})
+	}
 }

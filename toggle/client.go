@@ -11,6 +11,7 @@ import (
 	"net/url"
 	"os"
 	"path"
+	"sort"
 	"strings"
 	"sync"
 	"time"
@@ -32,10 +33,10 @@ type Client struct {
 
 type Flag struct {
 	Name        string `json:"name,omitempty"`
-	ServiceName string `json:"serviceName"`
+	ServiceName string `json:"serviceName,omitempty"`
 
-	RawValue string `json:"rawValue"`
-	Value    bool   `json:"value"`
+	RawValue string `json:"rawValue,omitempty"`
+	Value    bool   `json:"value,omitempty"`
 
 	Condition Condition `json:"condition"`
 }
@@ -192,6 +193,35 @@ func (c *Client) Connect(ctx context.Context) chan error {
 	}()
 
 	return errC
+}
+
+func (c *Client) MarshalJSON() ([]byte, error) {
+	type jsonClient struct {
+		Opts struct {
+			Path   string           `json:"path"`
+			Values []ConditionValue `json:"values"`
+		} `json:"opts,omitempty"`
+		Flags []Flag `json:"flags,omitempty"`
+	}
+
+	client := jsonClient{}
+	client.Opts.Path = c.opts.path
+	client.Opts.Values = c.opts.values
+
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+
+	for _, flags := range c.store {
+		client.Flags = append(client.Flags, flags...)
+	}
+	sort.Slice(client.Flags, func(i, j int) bool {
+		if client.Flags[i].Name == client.Flags[j].Name {
+			return client.Flags[i].ServiceName < client.Flags[j].ServiceName
+		}
+		return client.Flags[i].Name < client.Flags[j].Name
+	})
+
+	return json.Marshal(client)
 }
 
 func (c *Client) seedFlags(ctx context.Context, addr string) error {
