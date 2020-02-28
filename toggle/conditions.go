@@ -20,6 +20,8 @@ const (
 const (
 	AndOp ConditionOp = iota // &&
 	OrOp                     // ||
+
+	invalidConditionalOp // err
 )
 
 const (
@@ -27,6 +29,8 @@ const (
 	NeOp                // !=
 	LtOp                // <
 	GtOp                // >
+
+	invalidFieldOp // err
 
 	ServiceNameValue = "serviceName"
 )
