@@ -20,8 +20,8 @@ var (
 		{Name: "flag4", ServiceName: "svc2", RawValue: "some string"},
 	}
 
-	strFlags1 = `[{"name": "flag10", "serviceName": "svc1", "rawValue": "1", "value": true}, {"name": "flag11", "serviceName": "svc2", "rawValue": "1", "value": true}]`
-	strFlags2 = `[{"name": "flag10", "serviceName": "svc1", "rawValue": "1", "value": true}, {"name": "flag11", "serviceName": "", "rawValue": "raw string"}]`
+	strFlags1 = `[{"name": "flag10", "service": "svc1", "raw": "1", "value": true}, {"name": "flag11", "service": "svc2", "raw": "1", "value": true}]`
+	strFlags2 = `[{"name": "flag10", "service": "svc1", "raw": "1", "value": true}, {"name": "flag11", "service": "", "raw": "raw string"}]`
 )
 
 func TestHandler(t *testing.T) {
