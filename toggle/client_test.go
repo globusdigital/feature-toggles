@@ -304,7 +304,7 @@ func TestClient_MarshalJSON(t *testing.T) {
 		want    []byte
 		wantErr bool
 	}{
-		{name: "seed1", cname: "serv1", seed: seed1, want: []byte(`{"opts":{"path":"/flags","values":[{"name":"serviceName","type":3,"value":"serv1"}]},"flags":[{"name":"feature.1","serviceName":"serv1","rawValue":"t","value":true,"condition":{}},{"name":"feature.2","serviceName":"serv1","rawValue":"f","condition":{}},{"name":"feature.3","serviceName":"serv1","rawValue":"yes","value":true,"condition":{}},{"name":"feature.4","serviceName":"serv1","rawValue":"1","value":true,"condition":{}},{"name":"some.shared.feature","rawValue":"y","value":true,"condition":{}}]}`)},
+		{name: "seed1", cname: "serv1", seed: seed1, want: []byte(`{"opts":{"path":"/flags","values":[{"name":"serviceName","type":3,"value":"serv1"}]},"flags":[{"name":"feature.1","service":"serv1","raw":"t","value":true,"cond":{}},{"name":"feature.2","service":"serv1","raw":"f","cond":{}},{"name":"feature.3","service":"serv1","raw":"yes","value":true,"cond":{}},{"name":"feature.4","service":"serv1","raw":"1","value":true,"cond":{}},{"name":"some.shared.feature","raw":"y","value":true,"cond":{}}]}`)},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -316,9 +316,47 @@ func TestClient_MarshalJSON(t *testing.T) {
 				t.Errorf("Client.MarshalJSON() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
+
 			if !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("Client.MarshalJSON() = %v, want %v", string(got), string(tt.want))
 			}
+		})
+	}
+}
+
+func TestFlag_UnmarshalJSON(t *testing.T) {
+	tests := []struct {
+		name    string
+		d       []byte
+		wantErr bool
+		flag    toggle.Flag
+	}{
+		{name: "err", d: []byte(`{foo`), wantErr: true},
+		{name: "simple", d: []byte(`
+{"name":"toggle.server","service":"","raw":"example.com","value":false,"cond":{}}
+		`), flag: toggle.Flag{Name: "toggle.server", RawValue: "example.com"}},
+		{name: "conditional", d: []byte(`
+{"name":"f1","service":"s1","raw":"1","value":true,"cond":{"op":1,"fields":[{"op":1,"name":"n1","type":2,"value":true}]}}
+		`), flag: toggle.Flag{Name: "f1", ServiceName: "s1", RawValue: "1", Value: true, Condition: toggle.Condition{Op: toggle.OrOp, Fields: []toggle.ConditionField{{Op: toggle.NeOp, ConditionValue: toggle.ConditionValue{Name: "n1", Type: toggle.BoolType, Value: true}}}}}},
+		{name: "conditional 2", d: []byte(`
+{"name":"f1","service":"s1","raw":"1","value":true,"cond":{"op":1,"conds":[{"fields": [{"name":"n1","type":2,"value":true}]}]}}
+		`), flag: toggle.Flag{Name: "f1", ServiceName: "s1", RawValue: "1", Value: true, Condition: toggle.Condition{Op: 1, Conditions: []toggle.Condition{{Op: 0, Fields: []toggle.ConditionField{{ConditionValue: toggle.ConditionValue{Name: "n1", Type: 2, Value: true}}}}}}}},
+
+		{name: "expr", d: []byte(`
+{"name":"f1","service":"s1","raw":"1","value":true,"expr":"n1 != true"}
+		`), flag: toggle.Flag{Name: "f1", ServiceName: "s1", RawValue: "1", Value: true, Condition: toggle.Condition{Fields: []toggle.ConditionField{{Op: toggle.NeOp, ConditionValue: toggle.ConditionValue{Name: "n1", Type: toggle.BoolType, Value: true}}}}, Expr: "n1 != true"}},
+		{name: "expr 2", d: []byte(`
+{"name":"f1","service":"s1","raw":"1","value":true,"expr":"n1 != true || n2 == true"}
+		`), flag: toggle.Flag{Name: "f1", ServiceName: "s1", RawValue: "1", Value: true, Condition: toggle.Condition{Op: toggle.OrOp, Fields: []toggle.ConditionField{{Op: toggle.NeOp, ConditionValue: toggle.ConditionValue{Name: "n1", Type: toggle.BoolType, Value: true}}, {Op: toggle.EqOp, ConditionValue: toggle.ConditionValue{Name: "n2", Type: toggle.BoolType, Value: true}}}}, Expr: "n1 != true || n2 == true"}},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var f toggle.Flag
+			if err := f.UnmarshalJSON(tt.d); (err != nil) != tt.wantErr {
+				t.Errorf("Flag.UnmarshalJSON() error = %v, wantErr %v", err, tt.wantErr)
+			}
+
+			assert.Equal(t, tt.flag, f)
 		})
 	}
 }

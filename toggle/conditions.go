@@ -48,7 +48,7 @@ type ConditionField struct {
 
 type Condition struct {
 	Op         ConditionOp      `json:"op,omitempty"`
-	Conditions []Condition      `json:"conditions,omitempty"`
+	Conditions []Condition      `json:"conds,omitempty"`
 	Fields     []ConditionField `json:"fields,omitempty"`
 }
 

@@ -33,12 +33,30 @@ type Client struct {
 
 type Flag struct {
 	Name        string `json:"name,omitempty"`
-	ServiceName string `json:"serviceName,omitempty"`
+	ServiceName string `json:"service,omitempty"`
 
-	RawValue string `json:"rawValue,omitempty"`
+	RawValue string `json:"raw,omitempty"`
 	Value    bool   `json:"value,omitempty"`
 
-	Condition Condition `json:"condition"`
+	Condition Condition `json:"cond,omitempty"`
+	Expr      string    `json:"expr,omitempty"`
+}
+
+func (f *Flag) UnmarshalJSON(d []byte) error {
+	type flag Flag
+
+	var intermediate flag
+	err := json.Unmarshal(d, &intermediate)
+	if err != nil {
+		return err
+	}
+
+	*f = Flag(intermediate)
+
+	if f.Expr != "" && len(f.Condition.Fields) == 0 && len(f.Condition.Conditions) == 0 {
+		f.Condition, err = ParseCondition(strings.NewReader(f.Expr))
+	}
+	return err
 }
 
 // New creates a new toggle client with the given service name

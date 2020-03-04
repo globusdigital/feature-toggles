@@ -26,6 +26,7 @@ type flag struct {
 	Value    bool   `bson:"value"`
 
 	Condition toggle.Condition `bson:"condition"`
+	Expr      string           `bson:"expr"`
 }
 
 func NewMongo(ctx context.Context, url string) (*Mongo, error) {
