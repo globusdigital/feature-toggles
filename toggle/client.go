@@ -167,22 +167,34 @@ func (c *Client) ParseEnv(env []string) {
 }
 
 func (c *Client) Connect(ctx context.Context) chan error {
-	addr := c.GetRaw(ServerAddressFlag, Global)
-	if addr == "" {
-		return nil
-	}
-
 	errC := make(chan error)
 
 	go func() {
 		defer close(errC)
-		if err := c.seedFlags(ctx, addr); err != nil {
-			errC <- err
+
+		addr := c.GetRaw(ServerAddressFlag, Global)
+		if addr == "" {
 			return
 		}
 
-		if ctx.Err() != nil {
-			return
+		backoff := time.Duration(1)
+		for {
+			if err := c.seedFlags(ctx, addr); err != nil {
+				errC <- err
+
+				retry := time.Second * backoff
+				c.opts.log.Printf("Error sending the seed flags: %v. Retry in %s", err, retry)
+				backoff++
+
+				time.Sleep(retry)
+				continue
+			}
+
+			if ctx.Err() != nil {
+				return
+			}
+
+			break
 		}
 
 		var ch <-chan Event
@@ -204,7 +216,6 @@ func (c *Client) Connect(ctx context.Context) chan error {
 			case <-ticker.C:
 				if err := c.pollFlags(ctx, addr); err != nil {
 					errC <- err
-					return
 				}
 			}
 		}

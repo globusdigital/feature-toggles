@@ -145,6 +145,7 @@ func TestClient_Connect(t *testing.T) {
 		ev        []toggle.Event
 		update    []toggle.Flag
 		opts      []toggle.Option
+		errCount  int
 		wantErr   bool
 		want      []toggle.Flag
 	}{
@@ -152,6 +153,7 @@ func TestClient_Connect(t *testing.T) {
 		{name: "canceled ctx", cname: "serv1", ctx: canceledCtx(0), seed: seed1, enable: true},
 		{name: "server error", cname: "serv1", ctx: canceledCtx(time.Second), seed: seed1, serverErr: true, enable: true, wantErr: true},
 		{name: "invalid json", cname: "serv1", ctx: canceledCtx(time.Second), seed: seed1, jsonErr: true, enable: true, wantErr: true},
+		{name: "invalid json 2", cname: "serv1", ctx: canceledCtx(time.Second + 240*time.Millisecond), seed: seed1, jsonErr: true, enable: true, errCount: 2, wantErr: true},
 		{name: "poll json", cname: "serv1", ctx: canceledCtx(time.Second), seed: seed1, pollErr: true, enable: true, wantErr: true},
 		{name: "poll", cname: "serv1", ctx: canceledCtx(time.Second), seed: seed1, enable: true, update: update1, want: update1},
 		{name: "conditional 1", cname: "serv1", ctx: canceledCtx(time.Second), seed: seed1, enable: true, update: cond1, want: cond1},
@@ -247,11 +249,19 @@ func TestClient_Connect(t *testing.T) {
 			got := c.Connect(ctx)
 
 			if tt.wantErr {
-				select {
-				case <-ctx.Done():
-					t.Errorf("Expected error")
-				case err := <-got:
-					a.Error(err)
+				count := tt.errCount
+				if count == 0 {
+					count = 1
+				}
+
+				for i := 0; i < count; i++ {
+					select {
+					case <-ctx.Done():
+						t.Errorf("Expected error")
+						return
+					case err := <-got:
+						a.Error(err)
+					}
 				}
 			} else {
 				<-ctx.Done()

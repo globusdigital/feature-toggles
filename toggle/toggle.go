@@ -21,17 +21,8 @@ func Initialize(ctx context.Context, name string, opts ...ClientOption) {
 	DefaultClient.ParseEnv(os.Environ())
 
 	go func() {
-		c := DefaultClient.Connect(ctx)
-		for {
-			select {
-			case <-ctx.Done():
-				return
-			case err, open := <-c:
-				if !open {
-					return
-				}
-				DefaultClient.opts.log.Println("Error listening for updates:", err)
-			}
+		for err := range DefaultClient.Connect(ctx) {
+			DefaultClient.opts.log.Println("Error listening for updates:", err)
 		}
 	}()
 }
