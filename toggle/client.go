@@ -186,12 +186,12 @@ func (c *Client) Connect(ctx context.Context) chan error {
 				c.opts.log.Printf("Error sending the seed flags: %v. Retry in %s", err, retry)
 				backoff++
 
-				time.Sleep(retry)
-				continue
-			}
-
-			if ctx.Err() != nil {
-				return
+				select {
+				case <-ctx.Done():
+					return
+				case <-time.After(retry):
+					continue
+				}
 			}
 
 			break

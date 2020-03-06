@@ -20,8 +20,9 @@ func Initialize(ctx context.Context, name string, opts ...ClientOption) {
 	DefaultClient = New(name, opts...)
 	DefaultClient.ParseEnv(os.Environ())
 
+	errC := DefaultClient.Connect(ctx)
 	go func() {
-		for err := range DefaultClient.Connect(ctx) {
+		for err := range errC {
 			DefaultClient.opts.log.Println("Error listening for updates:", err)
 		}
 	}()

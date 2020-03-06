@@ -20,7 +20,6 @@ func TestGet(t *testing.T) {
 		cname   string
 		seed    []string
 		args    args
-		sub     bool
 		want    bool
 		wantRaw string
 	}{
@@ -49,9 +48,6 @@ func TestGet(t *testing.T) {
 
 			toggle.Initialize(ctx, tt.cname)
 
-			if tt.sub {
-				toggle.DefaultClient = toggle.New(tt.cname)
-			}
 			if got := toggle.Get(tt.args.name, tt.args.opts...); got != tt.want {
 				t.Errorf("Get() = %v, want %v", got, tt.want)
 			}
