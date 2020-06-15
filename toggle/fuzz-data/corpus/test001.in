@@ -1,0 +1,1 @@
+userID < 10 && (serviceName == 'serv1' || serviceName == 'serv2') || userGroup == "tes\"t'er"
