@@ -3,14 +3,20 @@ module github.com/globusdigital/feature-toggles
 go 1.13
 
 require (
-	github.com/dvyukov/go-fuzz v0.0.0-20200318091601-be3528f3a813 // indirect
-	github.com/go-chi/chi v4.0.3+incompatible
+	github.com/go-chi/chi v4.1.2+incompatible
+	github.com/go-stack/stack v1.8.1 // indirect
 	github.com/golang/mock v1.4.0
-	github.com/golang/protobuf v1.3.3 // indirect
+	github.com/golang/snappy v0.0.4 // indirect
+	github.com/klauspost/compress v1.14.2 // indirect
+	github.com/nats-io/jwt v1.2.2 // indirect
 	github.com/nats-io/nats-server/v2 v2.1.4 // indirect
-	github.com/nats-io/nats.go v1.9.1
-	github.com/stretchr/testify v1.4.0
-	go.mongodb.org/mongo-driver v1.3.0
-	golang.org/x/crypto v0.0.0-20191011191535-87dc89f01550 // indirect
-	golang.org/x/net v0.0.0-20190620200207-3b0461eec859 // indirect
+	github.com/nats-io/nats.go v1.13.0
+	github.com/stretchr/testify v1.6.1
+	github.com/xdg-go/scram v1.1.0 // indirect
+	github.com/youmark/pkcs8 v0.0.0-20201027041543-1326539a0a0a // indirect
+	go.mongodb.org/mongo-driver v1.8.3
+	golang.org/x/crypto v0.0.0-20220214200702-86341886e292 // indirect
+	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c // indirect
+	golang.org/x/text v0.3.7 // indirect
+	google.golang.org/protobuf v1.27.1 // indirect
 )
